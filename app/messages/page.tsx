@@ -19,7 +19,7 @@ interface ChatRoom {
   messages: { id: string; text: string; created_at: string; sender_id: string }[];
   // Computed after fetching profiles
   displayName?: string;
-  displayAvatar?: string;
+  displayAvatar?: string | null;
   lastMessage?: string;
   lastDate?: string;
 }
