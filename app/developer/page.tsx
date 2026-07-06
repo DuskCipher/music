@@ -33,7 +33,7 @@ export default function DeveloperPage() {
             <div className="absolute inset-0 bg-[#224032] rounded-[60%_40%_30%_70%_/_50%_60%_40%_50%] animate-[blob_8s_ease-in-out_infinite_reverse] scale-105" />
             <div className="relative w-full h-full rounded-[50%_50%_40%_60%_/_60%_40%_50%_50%] overflow-hidden border-2 border-[#4ADE80]/20 z-10">
               <Image 
-                src="/icon.jpg" 
+                src="/icon.png" 
                 alt="SANN404 FORUM" 
                 fill 
                 sizes="192px"
@@ -87,14 +87,6 @@ export default function DeveloperPage() {
             </div>
           </a>
 
-          {/* Download APK / Install PWA */}
-          <button 
-            onClick={installPWA}
-            className="w-full max-w-sm flex items-center justify-center gap-3 bg-[#1C1C1E] hover:bg-[#2C2C2E] text-white font-medium py-4 px-6 rounded-2xl transition-colors border border-white/5"
-          >
-            <Download className="w-5 h-5" />
-            <span>Download APK</span>
-          </button>
         </motion.div>
 
         <h2 className="text-[#4ADE80] text-sm font-medium mt-12 mb-8">Co-Developer</h2>
@@ -122,7 +114,54 @@ export default function DeveloperPage() {
           <p className="text-white/60 text-sm leading-relaxed max-w-sm mb-6">
             Turut mengembangkan Music App untuk memberikan pengalaman mendengarkan musik terbaik.
           </p>
+
+          {/* Social Links Grid */}
+          <div className="grid grid-cols-4 gap-3 w-full max-w-sm mb-4">
+            <a href="#" className="flex flex-col items-center justify-center gap-2 bg-[#1C1C1E] hover:bg-[#2C2C2E] p-4 rounded-2xl transition-colors">
+              <Globe className="w-6 h-6 text-white" />
+              <span className="text-[10px] text-white/70 font-medium">Website</span>
+            </a>
+            <a href="#" className="flex flex-col items-center justify-center gap-2 bg-[#1C1C1E] hover:bg-[#2C2C2E] p-4 rounded-2xl transition-colors">
+              <Tv className="w-6 h-6 text-white" />
+              <span className="text-[10px] text-white/70 font-medium">Saluran</span>
+            </a>
+            <a href="#" className="flex flex-col items-center justify-center gap-2 bg-[#1C1C1E] hover:bg-[#2C2C2E] p-4 rounded-2xl transition-colors">
+              <Twitter className="w-6 h-6 text-white" />
+              <span className="text-[10px] text-white/70 font-medium">X</span>
+            </a>
+            <a href="#" className="flex flex-col items-center justify-center gap-2 bg-[#1C1C1E] hover:bg-[#2C2C2E] p-4 rounded-2xl transition-colors">
+              <Instagram className="w-6 h-6 text-white" />
+              <span className="text-[10px] text-white/70 font-medium">Instagram</span>
+            </a>
+          </div>
+
+          {/* Buy me a coffee */}
+          <a 
+            href="#"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="w-full max-w-sm flex items-center gap-4 bg-[#1C1C1E] hover:bg-[#2C2C2E] p-5 rounded-3xl transition-colors mb-8"
+          >
+            <div className="w-12 h-12 rounded-full bg-[#224032] flex items-center justify-center shrink-0">
+              <Coffee className="w-6 h-6 text-[#4ADE80]" />
+            </div>
+            <div className="text-left">
+              <div className="text-white font-medium">Like what I do?</div>
+              <div className="text-white/50 text-sm">Buy me a coffee</div>
+            </div>
+          </a>
         </motion.div>
+
+        {/* Download APK / Install PWA */}
+        <div className="mt-12 flex justify-center w-full">
+          <button 
+            onClick={installPWA}
+            className="w-full max-w-sm flex items-center justify-center gap-3 bg-[#1C1C1E] hover:bg-[#2C2C2E] text-white font-medium py-4 px-6 rounded-2xl transition-colors border border-white/5"
+          >
+            <Download className="w-5 h-5" />
+            <span>Download APK</span>
+          </button>
+        </div>
       </div>
 
       <style jsx global>{`

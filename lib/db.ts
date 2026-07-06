@@ -1,4 +1,4 @@
-import { openDB, DBSchema, IDBPDatabase } from 'idb';
+import { createClient } from '@/lib/supabase/client';
 import { Track } from './store';
 
 export interface SavedAlbum {
@@ -21,153 +21,281 @@ export interface RecentSearch {
   timestamp: number;
 }
 
-interface SannMusicDB extends DBSchema {
-  playlists: {
-    key: string;
-    value: {
-      id: string;
-      name: string;
-      img: string;
-      tracks: Track[];
-    };
-  };
-  liked_songs: {
-    key: string;
-    value: Track;
-  };
-  subscribed_artists: {
-    key: string;
-    value: SubscribedArtist;
-  };
-  saved_albums: {
-    key: string;
-    value: SavedAlbum;
-  };
-  recent_searches: {
-    key: string;
-    value: RecentSearch;
-  };
+export interface PlayHistory {
+  id: string;
+  user_id: string;
+  video_id: string;
+  track_data: Track;
+  played_at: string;
 }
 
-let dbPromise: Promise<IDBPDatabase<SannMusicDB>>;
+import { useAuthStore } from './store';
 
-if (typeof window !== 'undefined') {
-  dbPromise = openDB<SannMusicDB>('SannMusicDB', 4, {
-    upgrade(db, oldVersion, newVersion, transaction) {
-      if (!db.objectStoreNames.contains('playlists')) {
-        db.createObjectStore('playlists', { keyPath: 'id' });
-      }
-      if (!db.objectStoreNames.contains('liked_songs')) {
-        db.createObjectStore('liked_songs', { keyPath: 'videoId' });
-      }
-      if (!db.objectStoreNames.contains('subscribed_artists')) {
-        db.createObjectStore('subscribed_artists', { keyPath: 'artistId' });
-      }
-      if (!db.objectStoreNames.contains('saved_albums')) {
-        db.createObjectStore('saved_albums', { keyPath: 'albumId' });
-      }
-      if (!db.objectStoreNames.contains('recent_searches')) {
-        db.createObjectStore('recent_searches', { keyPath: 'query' });
-      }
-    },
-  });
+const supabase = createClient();
+
+async function getUserId() {
+  // Use Zustand store for instant synchronous lookup instead of slow Supabase getSession
+  return useAuthStore.getState().user?.id || null;
 }
 
 export const db = {
+  // PLAYLISTS
   async getPlaylists() {
-    const db = await dbPromise;
-    return db.getAll('playlists');
+    const userId = await getUserId();
+    if (!userId) return [];
+    const { data, error } = await supabase.from('playlists').select('*').eq('user_id', userId);
+    if (error) {
+      console.error(error);
+      return [];
+    }
+    return data || [];
   },
   async addPlaylist(playlist: { id: string; name: string; img: string; tracks: Track[] }) {
-    const db = await dbPromise;
-    const result = await db.put('playlists', playlist);
+    const userId = await getUserId();
+    if (!userId) return;
+    
+    // Check if updating or inserting
+    const { data: existing } = await supabase.from('playlists').select('id').eq('id', playlist.id).eq('user_id', userId).maybeSingle();
+    
+    let error;
+    if (existing) {
+      const res = await supabase.from('playlists').update({ name: playlist.name, img: playlist.img, tracks: playlist.tracks }).eq('id', playlist.id).eq('user_id', userId);
+      error = res.error;
+    } else {
+      const res = await supabase.from('playlists').insert([{ ...playlist, user_id: userId }]);
+      error = res.error;
+    }
+    
+    if (error) console.error(error);
     if (typeof window !== 'undefined') window.dispatchEvent(new CustomEvent('playlistsUpdated'));
-    return result;
   },
   async getPlaylist(id: string) {
-    const db = await dbPromise;
-    return db.get('playlists', id);
+    const userId = await getUserId();
+    if (!userId) return null;
+    const { data, error } = await supabase.from('playlists').select('*').eq('id', id).eq('user_id', userId).maybeSingle();
+    if (error) return null;
+    return data;
   },
   async deletePlaylist(id: string) {
-    const db = await dbPromise;
-    const result = await db.delete('playlists', id);
+    const userId = await getUserId();
+    if (!userId) return;
+    const { error } = await supabase.from('playlists').delete().eq('id', id).eq('user_id', userId);
+    if (error) console.error(error);
     if (typeof window !== 'undefined') window.dispatchEvent(new CustomEvent('playlistsUpdated'));
-    return result;
   },
+  
+  // LIKED SONGS
+  // PLAY HISTORY
+  async addToHistory(track: Track) {
+    const userId = await getUserId();
+    if (!userId) return;
+
+    // Remove existing entry for this track to avoid duplicates (moves to top)
+    await supabase.from('play_history').delete().eq('user_id', userId).eq('video_id', track.videoId);
+
+    const { error } = await supabase.from('play_history').insert({
+      user_id: userId,
+      video_id: track.videoId,
+      track_data: track,
+    });
+
+    if (error) console.error('Failed to add to play_history:', error);
+  },
+
+  async getHistory(): Promise<{ track: Track; playedAt: number }[]> {
+    const userId = await getUserId();
+    if (!userId) return [];
+
+    const { data, error } = await supabase
+      .from('play_history')
+      .select('*')
+      .eq('user_id', userId)
+      .order('played_at', { ascending: false })
+      .limit(100);
+
+    if (error) {
+      console.error('Failed to fetch play_history:', error);
+      return [];
+    }
+
+    // Deduplicate in case there are already duplicates in the database
+    const uniqueTracks = new Map();
+    for (const d of data) {
+      if (!uniqueTracks.has(d.video_id)) {
+        uniqueTracks.set(d.video_id, {
+          track: d.track_data as Track,
+          playedAt: new Date(d.played_at).getTime()
+        });
+      }
+    }
+
+    return Array.from(uniqueTracks.values()).slice(0, 50);
+  },
+
+  // FOLLOW SYSTEM
+  async followUser(followingId: string) {
+    const followerId = await getUserId();
+    if (!followerId || followerId === followingId) return { error: 'Invalid action' };
+
+    const { error } = await supabase.from('follows').insert({
+      follower_id: followerId,
+      following_id: followingId
+    });
+    return { error };
+  },
+
+  async unfollowUser(followingId: string) {
+    const followerId = await getUserId();
+    if (!followerId) return { error: 'Not logged in' };
+
+    const { error } = await supabase.from('follows')
+      .delete()
+      .match({ follower_id: followerId, following_id: followingId });
+    return { error };
+  },
+
+  async checkIsFollowing(followingId: string) {
+    const followerId = await getUserId();
+    if (!followerId) return false;
+
+    const { data } = await supabase.from('follows')
+      .select('follower_id')
+      .match({ follower_id: followerId, following_id: followingId })
+      .maybeSingle();
+
+    return !!data;
+  },
+
   async getLikedSongs() {
-    const db = await dbPromise;
-    return db.getAll('liked_songs');
+    const userId = await getUserId();
+    if (!userId) return [];
+    const { data, error } = await supabase.from('liked_songs').select('track_data').eq('user_id', userId).order('created_at', { ascending: false });
+    if (error) {
+      console.error(error);
+      return [];
+    }
+    return data.map(d => d.track_data);
   },
   async addLikedSong(track: Track) {
-    const db = await dbPromise;
-    return db.put('liked_songs', track);
+    const userId = await getUserId();
+    if (!userId) return;
+    const { error } = await supabase.from('liked_songs').upsert({ user_id: userId, video_id: track.videoId, track_data: track }, { onConflict: 'user_id,video_id' });
+    if (error) console.error(error);
   },
   async removeLikedSong(videoId: string) {
-    const db = await dbPromise;
-    return db.delete('liked_songs', videoId);
+    const userId = await getUserId();
+    if (!userId) return;
+    const { error } = await supabase.from('liked_songs').delete().eq('video_id', videoId).eq('user_id', userId);
+    if (error) console.error(error);
   },
   async isLiked(videoId: string) {
-    const db = await dbPromise;
-    const song = await db.get('liked_songs', videoId);
-    return !!song;
+    const userId = await getUserId();
+    if (!userId) return false;
+    const { data, error } = await supabase.from('liked_songs').select('video_id').eq('video_id', videoId).eq('user_id', userId).maybeSingle();
+    if (error || !data) return false;
+    return true;
   },
+
+  // SUBSCRIBED ARTISTS
   async getSubscribedArtists() {
-    const db = await dbPromise;
-    return db.getAll('subscribed_artists');
+    const userId = await getUserId();
+    if (!userId) return [];
+    const { data, error } = await supabase.from('subscribed_artists').select('*').eq('user_id', userId).order('created_at', { ascending: false });
+    if (error) return [];
+    return data;
   },
   async addSubscribedArtist(artist: SubscribedArtist) {
-    const db = await dbPromise;
-    return db.put('subscribed_artists', artist);
+    const userId = await getUserId();
+    if (!userId) return;
+    const { error } = await supabase.from('subscribed_artists').upsert({ user_id: userId, artist_id: artist.artistId, name: artist.name, thumbnails: artist.thumbnails }, { onConflict: 'user_id,artist_id' });
+    if (error) console.error(error);
   },
   async removeSubscribedArtist(artistId: string) {
-    const db = await dbPromise;
-    return db.delete('subscribed_artists', artistId);
+    const userId = await getUserId();
+    if (!userId) return;
+    const { error } = await supabase.from('subscribed_artists').delete().eq('artist_id', artistId).eq('user_id', userId);
+    if (error) console.error(error);
   },
   async isSubscribed(artistId: string) {
-    const db = await dbPromise;
-    const artist = await db.get('subscribed_artists', artistId);
-    return !!artist;
+    const userId = await getUserId();
+    if (!userId) return false;
+    const { data, error } = await supabase.from('subscribed_artists').select('artist_id').eq('artist_id', artistId).eq('user_id', userId).maybeSingle();
+    return !!data;
   },
+
+  // SAVED ALBUMS
   async getSavedAlbums() {
-    const db = await dbPromise;
-    return db.getAll('saved_albums');
+    const userId = await getUserId();
+    if (!userId) return [];
+    const { data, error } = await supabase.from('saved_albums').select('*').eq('user_id', userId).order('created_at', { ascending: false });
+    if (error) return [];
+    return data;
   },
   async addSavedAlbum(album: SavedAlbum) {
-    const db = await dbPromise;
-    return db.put('saved_albums', album);
+    const userId = await getUserId();
+    if (!userId) return;
+    const { error } = await supabase.from('saved_albums').upsert({ user_id: userId, album_id: album.albumId, name: album.name, artist: album.artist, thumbnails: album.thumbnails }, { onConflict: 'user_id,album_id' });
+    if (error) console.error(error);
   },
   async removeSavedAlbum(albumId: string) {
-    const db = await dbPromise;
-    return db.delete('saved_albums', albumId);
+    const userId = await getUserId();
+    if (!userId) return;
+    const { error } = await supabase.from('saved_albums').delete().eq('album_id', albumId).eq('user_id', userId);
+    if (error) console.error(error);
   },
   async isAlbumSaved(albumId: string) {
-    const db = await dbPromise;
-    const album = await db.get('saved_albums', albumId);
-    return !!album;
+    const userId = await getUserId();
+    if (!userId) return false;
+    const { data, error } = await supabase.from('saved_albums').select('album_id').eq('album_id', albumId).eq('user_id', userId).maybeSingle();
+    return !!data;
   },
+
+  // RECENT SEARCHES
   async getRecentSearches() {
-    const db = await dbPromise;
-    const searches = await db.getAll('recent_searches');
-    return searches.sort((a, b) => b.timestamp - a.timestamp).slice(0, 20);
+    const userId = await getUserId();
+    if (!userId) return [];
+    const { data, error } = await supabase.from('recent_searches').select('query, created_at').eq('user_id', userId).order('created_at', { ascending: false }).limit(20);
+    if (error) return [];
+    return data?.map(d => ({ query: d.query, timestamp: new Date(d.created_at).getTime() })) || [];
   },
   async addRecentSearch(query: string) {
-    const db = await dbPromise;
-    await db.put('recent_searches', { query, timestamp: Date.now() });
+    const userId = await getUserId();
+    if (!userId) return;
     
-    // Keep only 20
-    const searches = await db.getAll('recent_searches');
-    if (searches.length > 20) {
-      const sorted = searches.sort((a, b) => b.timestamp - a.timestamp);
-      const toDelete = sorted.slice(20);
-      const tx = db.transaction('recent_searches', 'readwrite');
-      for (const item of toDelete) {
-        tx.store.delete(item.query);
-      }
-      await tx.done;
+    // Insert new search
+    const { error } = await supabase.from('recent_searches').upsert({ user_id: userId, query }, { onConflict: 'user_id,query' });
+    if (error) console.error(error);
+
+    // Enforce limit of 20 by deleting oldest if count > 20
+    const { data } = await supabase.from('recent_searches').select('id').eq('user_id', userId).order('created_at', { ascending: false });
+    if (data && data.length > 20) {
+      const idsToDelete = data.slice(20).map(d => d.id);
+      await supabase.from('recent_searches').delete().in('id', idsToDelete);
     }
   },
   async removeRecentSearch(query: string) {
-    const db = await dbPromise;
-    return db.delete('recent_searches', query);
+    const userId = await getUserId();
+    if (!userId) return;
+    const { error } = await supabase.from('recent_searches').delete().eq('query', query).eq('user_id', userId);
+    if (error) console.error(error);
   },
+  async clearRecentSearches() {
+    const userId = await getUserId();
+    if (!userId) return;
+    const { error } = await supabase.from('recent_searches').delete().eq('user_id', userId);
+    if (error) console.error(error);
+  },
+
+  // CLEAR ALL DATA
+  async clearAllData() {
+    const userId = await getUserId();
+    if (!userId) return;
+    await Promise.all([
+      supabase.from('playlists').delete().eq('user_id', userId),
+      supabase.from('liked_songs').delete().eq('user_id', userId),
+      supabase.from('subscribed_artists').delete().eq('user_id', userId),
+      supabase.from('saved_albums').delete().eq('user_id', userId),
+      supabase.from('recent_searches').delete().eq('user_id', userId)
+    ]);
+  }
 };

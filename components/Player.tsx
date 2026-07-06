@@ -1,20 +1,25 @@
 'use client';
 
 import { useEffect, useRef, useState, useCallback } from 'react';
-import { usePlayerStore } from '@/lib/store';
+import { usePlayerStore, useSettingsStore } from '@/lib/store';
 import { db } from '@/lib/db';
 import YouTube from 'react-youtube';
+import { Capacitor } from '@capacitor/core';
+import { PiPPlugin } from '@/lib/pip';
+import { BackgroundMode } from '@anuradev/capacitor-background-mode';
 import { motion, AnimatePresence } from 'motion/react';
-import { Play, Pause, SkipForward, SkipBack, Heart, ChevronDown, ListMusic, Mic2, Shuffle, Repeat, Repeat1, Maximize2, MoreVertical, Cast, ListPlus, User, Minimize2, MoreHorizontal, Volume2 } from 'lucide-react';
+import { Play, Pause, SkipForward, SkipBack, Heart, ChevronDown, ListMusic, Mic2, Shuffle, Repeat, Repeat1, Maximize2, MoreVertical, ListPlus, User, Minimize2, MoreHorizontal, Volume2, Timer } from 'lucide-react';
 import { cn, getHighResImage } from '@/lib/utils';
 import Image from 'next/image';
-import { useRouter } from 'next/navigation';
+import { useRouter, usePathname } from 'next/navigation';
 import { QueueList } from './QueueList';
 
 import { MarqueeText } from './MarqueeText';
+import { usePartySync } from '@/hooks/usePartySync';
 
 export function Player() {
   const router = useRouter();
+  const pathname = usePathname();
   const currentTrack = usePlayerStore((state) => state.currentTrack);
   const isPlaying = usePlayerStore((state) => state.isPlaying);
   const isExpanded = usePlayerStore((state) => state.isExpanded);
@@ -28,6 +33,7 @@ export function Player() {
   const playNext = usePlayerStore((state) => state.playNext);
   const playPrev = usePlayerStore((state) => state.playPrev);
   const setTrackToAdd = usePlayerStore((state) => state.setTrackToAdd);
+  const setActiveMenuTrack = usePlayerStore((state) => state.setActiveMenuTrack);
   const dominantColor = usePlayerStore((state) => state.dominantColor);
   const volume = usePlayerStore((state) => state.volume);
   const setVolume = usePlayerStore((state) => state.setVolume);
@@ -35,6 +41,9 @@ export function Player() {
   const repeatMode = usePlayerStore((state) => state.repeatMode);
   const toggleShuffle = usePlayerStore((state) => state.toggleShuffle);
   const toggleRepeat = usePlayerStore((state) => state.toggleRepeat);
+  const sleepTimer = usePlayerStore((state) => state.sleepTimer);
+  const setSleepTimer = usePlayerStore((state) => state.setSleepTimer);
+  const dataSaver = useSettingsStore((state) => state.dataSaver);
 
   const [isLiked, setIsLiked] = useState(false);
   const [lyrics, setLyrics] = useState<{ text: string; time?: number }[] | null>(null);
@@ -43,13 +52,158 @@ export function Player() {
   const [showQueue, setShowQueue] = useState(false);
   const [activeVideoId, setActiveVideoId] = useState<string | null>(null);
   const [isAlternativeTrying, setIsAlternativeTrying] = useState(false);
+  const [showSleepTimer, setShowSleepTimer] = useState(false);
+  const [sleepRemaining, setSleepRemaining] = useState<string | null>(null);
+  const [isPipMode, setIsPipMode] = useState(false);
   
   const playerRef = useRef<any>(null);
   const lyricsContainerRef = useRef<HTMLDivElement>(null);
   
+  usePartySync(playerRef);
+  
   useEffect(() => {
-    setActiveVideoId(currentTrack?.videoId || null);
-    setIsAlternativeTrying(false);
+    if (Capacitor.isNativePlatform()) {
+      BackgroundMode.enable({
+        title: 'MusikKuzyy',
+        text: 'Memutar musik di latar belakang',
+        hidden: false,
+        silent: false,
+        disableWebViewOptimization: true,
+      }).then(() => {
+        BackgroundMode.disableWebViewOptimizations();
+        
+        // Only ask battery permission ONCE (first time ever)
+        const alreadyAsked = localStorage.getItem('batteryOptAsked');
+        if (!alreadyAsked) {
+          BackgroundMode.checkBatteryOptimizations().then(result => {
+            if (result.enabled) {
+              BackgroundMode.requestDisableBatteryOptimizations();
+            }
+            localStorage.setItem('batteryOptAsked', 'true');
+          }).catch(console.error);
+        }
+      }).catch(console.error);
+
+      // Sync PiP setting from localStorage to native
+      const savedPip = localStorage.getItem('autoPipEnabled');
+      const pipEnabled = savedPip !== null ? savedPip === 'true' : true;
+      PiPPlugin.setAutoPipEnabled({ enabled: pipEnabled }).catch(console.error);
+
+      // Force music to keep playing when app goes to background
+      // Use aggressive burst: retry playVideo every 100ms for the first second
+      BackgroundMode.addListener('appInBackground', () => {
+        const forcePlay = () => {
+          if (usePlayerStore.getState().isPlaying && playerRef.current) {
+            playerRef.current.playVideo();
+          }
+        };
+        // Immediate + burst retries at 100, 200, 300, 500, 800ms
+        forcePlay();
+        setTimeout(forcePlay, 100);
+        setTimeout(forcePlay, 200);
+        setTimeout(forcePlay, 300);
+        setTimeout(forcePlay, 500);
+        setTimeout(forcePlay, 800);
+      });
+
+      BackgroundMode.addListener('appInForeground', () => {
+        if (usePlayerStore.getState().isPlaying && playerRef.current) {
+          playerRef.current.playVideo();
+        }
+      });
+    }
+  }, []);
+
+  // Sync play state to PiP controls (updates play/pause icon in PiP window)
+  useEffect(() => {
+    if (Capacitor.isNativePlatform()) {
+      PiPPlugin.setPlayState({ playing: isPlaying }).catch(console.error);
+    }
+  }, [isPlaying]);
+
+  // Listen for PiP control button events from native Android
+  useEffect(() => {
+    const handlePipPrev = () => playPrev();
+    const handlePipToggle = () => togglePlay();
+    const handlePipNext = () => playNext();
+
+    window.addEventListener('pip-prev', handlePipPrev);
+    window.addEventListener('pip-toggle', handlePipToggle);
+    window.addEventListener('pip-next', handlePipNext);
+
+    return () => {
+      window.removeEventListener('pip-prev', handlePipPrev);
+      window.removeEventListener('pip-toggle', handlePipToggle);
+      window.removeEventListener('pip-next', handlePipNext);
+    };
+  }, [playPrev, togglePlay, playNext]);
+
+  // Listen for PiP mode enter/exit and suppress YouTube API errors
+  useEffect(() => {
+    const handleGlobalError = (event: ErrorEvent) => {
+      if (
+        event.filename?.includes('www-widgetapi.js') ||
+        event.message?.includes('www-widgetapi.js') ||
+        event.message?.includes('postMessage') ||
+        event.message?.includes("Cannot read properties of null (reading 'src')")
+      ) {
+        event.preventDefault();
+        event.stopPropagation();
+      }
+    };
+    const handleUnhandledRejection = (event: PromiseRejectionEvent) => {
+      const msg = String(event.reason);
+      if (msg.includes('www-widgetapi') || msg.includes('postMessage') || msg.includes("reading 'src'")) {
+        event.preventDefault();
+      }
+    };
+    window.addEventListener('error', handleGlobalError, true);
+    window.addEventListener('unhandledrejection', handleUnhandledRejection);
+
+    const handlePipEnter = () => {
+      setIsPipMode(true);
+      document.body.classList.add('pip-active');
+    };
+    const handlePipExit = () => {
+      setIsPipMode(false);
+      document.body.classList.remove('pip-active');
+    };
+    
+    const handleOpenQueue = () => {
+      setExpanded(true);
+      setShowQueue(true);
+    };
+    
+    const handleOpenSleepTimer = () => {
+      setExpanded(true);
+      setShowSleepTimer(true);
+    };
+
+    window.addEventListener('pip-enter', handlePipEnter);
+    window.addEventListener('pip-exit', handlePipExit);
+    window.addEventListener('open-queue', handleOpenQueue);
+    window.addEventListener('open-sleep-timer', handleOpenSleepTimer);
+
+    return () => {
+      window.removeEventListener('error', handleGlobalError, true);
+      window.removeEventListener('unhandledrejection', handleUnhandledRejection);
+      window.removeEventListener('pip-enter', handlePipEnter);
+      window.removeEventListener('pip-exit', handlePipExit);
+      window.removeEventListener('open-queue', handleOpenQueue);
+      window.removeEventListener('open-sleep-timer', handleOpenSleepTimer);
+      document.body.classList.remove('pip-active');
+    };
+  }, []);
+
+  useEffect(() => {
+    // Immediately destroy old player reference to prevent stale calls
+    playerRef.current = null;
+    
+    const timeoutId = setTimeout(() => {
+      setActiveVideoId(currentTrack?.videoId || null);
+      setIsAlternativeTrying(false);
+    }, 300);
+    return () => clearTimeout(timeoutId);
   }, [currentTrack?.videoId]);
 
   // Smooth scroll lyrics
@@ -80,8 +234,41 @@ export function Player() {
   useEffect(() => {
     if (currentTrack) {
       db.isLiked(currentTrack.videoId).then(setIsLiked);
+      db.addToHistory(currentTrack);
+      
+      if (Capacitor.isNativePlatform()) {
+        const artist = Array.isArray(currentTrack.artist) ? currentTrack.artist.map(a => a.name).join(', ') : currentTrack.artist?.name || 'Unknown Artist';
+        BackgroundMode.updateNotification({
+          title: currentTrack.name,
+          text: artist,
+        }).catch(console.error);
+      }
     }
   }, [currentTrack]);
+
+  // Sleep Timer countdown
+  useEffect(() => {
+    if (!sleepTimer) {
+      setSleepRemaining(null);
+      return;
+    }
+    const tick = () => {
+      const diff = sleepTimer - Date.now();
+      if (diff <= 0) {
+        setSleepTimer(null);
+        setPlaying(false);
+        setSleepRemaining(null);
+        if (playerRef.current) playerRef.current.pauseVideo();
+      } else {
+        const mins = Math.floor(diff / 60000);
+        const secs = Math.floor((diff % 60000) / 1000);
+        setSleepRemaining(`${mins}:${secs < 10 ? '0' : ''}${secs}`);
+      }
+    };
+    tick();
+    const interval = setInterval(tick, 1000);
+    return () => clearInterval(interval);
+  }, [sleepTimer]);
 
   useEffect(() => {
     if (currentTrack && showLyrics && !lyrics) {
@@ -251,13 +438,35 @@ export function Player() {
   }, [volume, currentTrack]);
 
   useEffect(() => {
+    let keepAliveInterval: NodeJS.Timeout | null = null;
+
     const handleVisibilityChange = () => {
-      if (document.visibilityState === 'visible' && usePlayerStore.getState().isPlaying && playerRef.current) {
-        playerRef.current.playVideo();
+      if (document.visibilityState === 'hidden') {
+        // App went to background - immediately force play + fast keepalive
+        const forcePlay = () => {
+          if (usePlayerStore.getState().isPlaying && playerRef.current) {
+            playerRef.current.playVideo();
+          }
+        };
+        forcePlay();
+        // Fast keepalive every 200ms to catch YouTube auto-pause quickly
+        keepAliveInterval = setInterval(forcePlay, 200);
+      } else {
+        // App came back to foreground - stop keepalive
+        if (keepAliveInterval) {
+          clearInterval(keepAliveInterval);
+          keepAliveInterval = null;
+        }
+        if (usePlayerStore.getState().isPlaying && playerRef.current) {
+          playerRef.current.playVideo();
+        }
       }
     };
     document.addEventListener('visibilitychange', handleVisibilityChange);
-    return () => document.removeEventListener('visibilitychange', handleVisibilityChange);
+    return () => {
+      document.removeEventListener('visibilitychange', handleVisibilityChange);
+      if (keepAliveInterval) clearInterval(keepAliveInterval);
+    };
   }, []);
 
   const formatTime = (seconds: number) => {
@@ -323,9 +532,10 @@ export function Player() {
     }
   };
 
-  if (!currentTrack) return null;
+  if (!currentTrack || pathname.startsWith('/auth')) return null;
 
-  const thumbnail = getHighResImage(currentTrack.thumbnails?.[currentTrack.thumbnails.length - 1]?.url, 800);
+  // Jika dataSaver aktif, load resolusi gambar rendah (200px), jika tidak high-res (800px)
+  const thumbnail = getHighResImage(currentTrack.thumbnails?.[currentTrack.thumbnails.length - 1]?.url, dataSaver ? 200 : 800);
   const artistName = Array.isArray(currentTrack.artist) ? currentTrack.artist.map(a => a.name).join(', ') : currentTrack.artist?.name || 'Unknown Artist';
 
   return (
@@ -435,8 +645,8 @@ export function Player() {
             className="fixed inset-0 z-[100] flex flex-col p-6 pb-[calc(1.5rem+env(safe-area-inset-bottom))] md:pb-8"
             style={{
               background: dominantColor 
-                ? `linear-gradient(to bottom, color-mix(in srgb, ${dominantColor} 40%, #121212) 0%, #121212 100%)`
-                : '#121212'
+                ? `radial-gradient(circle at 50% -20%, color-mix(in srgb, ${dominantColor} 80%, #0A0A0A) 0%, #0A0A0A 80%)`
+                : '#0A0A0A'
             }}
           >
             {/* Header */}
@@ -445,10 +655,13 @@ export function Player() {
                 <ChevronDown className="w-8 h-8" />
               </button>
               <div className="flex gap-4">
-                <button className="p-2 text-white">
-                  <Cast className="w-6 h-6" />
-                </button>
-                <button className="p-2 -mr-2 text-white">
+                <button 
+                  className="p-2 -mr-2 text-white"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    if (currentTrack) setActiveMenuTrack(currentTrack);
+                  }}
+                >
                   <MoreVertical className="w-6 h-6" />
                 </button>
               </div>
@@ -501,10 +714,10 @@ export function Player() {
                               <p 
                                 key={i} 
                                 className={cn(
-                                  "lyric-line text-2xl md:text-3xl font-bold transition-all duration-300 ease-out origin-center", 
+                                  "lyric-line text-2xl md:text-3xl font-bold transition-opacity duration-300 ease-out break-words px-4 w-full", 
                                   lyricsType === 'synced' 
-                                    ? (isActive ? "text-white scale-[1.05]" : "text-white/30 scale-100 cursor-pointer hover:text-white/60")
-                                    : "text-white/90 scale-100"
+                                    ? (isActive ? "text-white opacity-100" : "text-white opacity-30 cursor-pointer hover:opacity-60")
+                                    : "text-white opacity-90"
                                 )}
                                 onClick={() => {
                                   if (lyricsType === 'synced' && duration > 0 && line.time !== undefined) {
@@ -612,7 +825,7 @@ export function Player() {
                     </div>
 
                     {/* Bottom Actions */}
-                    <div className="flex justify-between items-center px-6 py-4 bg-white/5 rounded-2xl">
+                    <div className="flex justify-between items-center px-6 py-4 bg-white/5 rounded-2xl relative">
                       <button 
                         onClick={() => {
                           setShowQueue(!showQueue);
@@ -633,6 +846,15 @@ export function Player() {
                         <Mic2 className="w-5 h-5" />
                         <span className="text-[10px] uppercase tracking-wider">Lyrics</span>
                       </button>
+                      <button
+                        onClick={() => setShowSleepTimer(!showSleepTimer)}
+                        className={cn("transition flex flex-col items-center gap-1 relative", sleepTimer ? "text-[#A78BFA]" : "text-white/80 hover:text-white")}
+                      >
+                        <Timer className="w-5 h-5" />
+                        <span className="text-[10px] uppercase tracking-wider">
+                          {sleepRemaining || 'Timer'}
+                        </span>
+                      </button>
                       <button 
                         onClick={() => {
                           const artistId = Array.isArray(currentTrack.artist) 
@@ -646,7 +868,7 @@ export function Player() {
                         className="text-white/80 hover:text-white transition flex flex-col items-center gap-1"
                       >
                         <User className="w-5 h-5" />
-                        <span className="text-[10px] uppercase tracking-wider">Lihat Artis</span>
+                        <span className="text-[10px] uppercase tracking-wider">Artis</span>
                       </button>
                       <div className="hidden md:flex items-center gap-3 text-white/80 w-32 ml-4">
                         <Volume2 className="w-5 h-5 shrink-0" />
@@ -659,11 +881,84 @@ export function Player() {
                           className="w-full h-1 bg-white/20 rounded-full appearance-none [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:w-3 [&::-webkit-slider-thumb]:h-3 [&::-webkit-slider-thumb]:bg-white [&::-webkit-slider-thumb]:rounded-full cursor-pointer"
                         />
                       </div>
+
+                      {/* Sleep Timer Popup */}
+                      <AnimatePresence>
+                        {showSleepTimer && (
+                          <motion.div
+                            initial={{ opacity: 0, y: 10, scale: 0.95 }}
+                            animate={{ opacity: 1, y: 0, scale: 1 }}
+                            exit={{ opacity: 0, y: 10, scale: 0.95 }}
+                            className="absolute bottom-full mb-3 left-1/2 -translate-x-1/2 bg-[#1C1C1E] border border-white/10 rounded-2xl p-3 shadow-2xl w-56 z-50"
+                          >
+                            <p className="text-white/50 text-xs font-semibold uppercase tracking-wider mb-2 text-center">Sleep Timer</p>
+                            <div className="space-y-1">
+                              {[
+                                { label: '15 Menit', mins: 15 },
+                                { label: '30 Menit', mins: 30 },
+                                { label: '45 Menit', mins: 45 },
+                                { label: '1 Jam', mins: 60 },
+                                { label: '2 Jam', mins: 120 },
+                              ].map(opt => (
+                                <button
+                                  key={opt.mins}
+                                  onClick={() => {
+                                    setSleepTimer(opt.mins);
+                                    setShowSleepTimer(false);
+                                  }}
+                                  className="w-full text-left px-4 py-2.5 rounded-xl text-white text-sm font-medium hover:bg-white/10 transition-colors"
+                                >
+                                  {opt.label}
+                                </button>
+                              ))}
+                              {sleepTimer && (
+                                <button
+                                  onClick={() => {
+                                    setSleepTimer(null);
+                                    setShowSleepTimer(false);
+                                  }}
+                                  className="w-full text-left px-4 py-2.5 rounded-xl text-red-400 text-sm font-medium hover:bg-red-500/10 transition-colors"
+                                >
+                                  Matikan Timer
+                                </button>
+                              )}
+                            </div>
+                          </motion.div>
+                        )}
+                      </AnimatePresence>
                     </div>
                   </div>
           </motion.div>
         )}
       </AnimatePresence>
+
+      {/* PiP Overlay - Matches exactly the mini player design (Picture 1) */}
+      {isPipMode && Capacitor.isNativePlatform() && (
+        <div className="fixed inset-0 z-[999999] bg-[#1A1A1A] overflow-hidden flex items-center justify-between w-screen h-screen px-10">
+          {currentTrack && (
+            <>
+              <img 
+                src={getHighResImage(currentTrack.thumbnails?.[0]?.url)} 
+                alt="Art" 
+                className="w-28 h-28 rounded-full object-cover shadow-2xl"
+              />
+              
+              <div className="flex items-center gap-8">
+                <div className="w-20 h-20 flex items-center justify-center bg-white/10 rounded-full shadow-lg">
+                  {isPlaying ? (
+                    <Pause className="w-10 h-10 fill-white text-white" />
+                  ) : (
+                    <Play className="w-10 h-10 fill-white text-white ml-1.5" />
+                  )}
+                </div>
+                <Heart 
+                  className={cn("w-10 h-10", isLiked ? "fill-white text-white" : "text-white opacity-80")} 
+                />
+              </div>
+            </>
+          )}
+        </div>
+      )}
     </>
   );
 }

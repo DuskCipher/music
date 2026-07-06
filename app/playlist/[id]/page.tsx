@@ -4,18 +4,81 @@ import { useEffect, useState } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import { db } from '@/lib/db';
 import { usePlayerStore, Track } from '@/lib/store';
-import { Play, ArrowLeft, MoreHorizontal, Radio, Music, Trash2, BookmarkPlus, BookmarkCheck } from 'lucide-react';
+import { Play, ArrowLeft, MoreHorizontal, Radio, Music, Trash2, BookmarkPlus, BookmarkCheck, GripVertical } from 'lucide-react';
 import Image from 'next/image';
 import { TrackItem } from '@/components/TrackItem';
 import { PlaylistSkeleton } from '@/components/PlaylistSkeleton';
 import { MarqueeText } from '@/components/MarqueeText';
 import { ConfirmModal } from '@/components/FeedbackModals';
+import { getHighResImage } from '@/lib/utils';
+
+import {
+  DndContext,
+  closestCenter,
+  PointerSensor,
+  TouchSensor,
+  useSensor,
+  useSensors,
+  DragEndEvent,
+} from '@dnd-kit/core';
+import {
+  arrayMove,
+  SortableContext,
+  useSortable,
+  verticalListSortingStrategy,
+} from '@dnd-kit/sortable';
+import { CSS } from '@dnd-kit/utilities';
 
 interface Playlist {
   id: string;
   name: string;
   img: string;
   tracks: Track[];
+}
+
+function SortableTrackItem({ track, index, queue, onRemove, isSelfCreated }: {
+  track: Track;
+  index: number;
+  queue: Track[];
+  onRemove?: (track: Track) => void;
+  isSelfCreated: boolean;
+}) {
+  const {
+    attributes,
+    listeners,
+    setNodeRef,
+    transform,
+    transition,
+    isDragging,
+  } = useSortable({ id: track.videoId + '-' + index });
+
+  const style = {
+    transform: CSS.Transform.toString(transform),
+    transition,
+    opacity: isDragging ? 0.5 : 1,
+    zIndex: isDragging ? 50 : 'auto' as any,
+  };
+
+  return (
+    <div ref={setNodeRef} style={style} className="flex items-center gap-1">
+      {isSelfCreated && (
+        <button
+          {...attributes}
+          {...listeners}
+          className="p-2 text-white/30 hover:text-white/60 cursor-grab active:cursor-grabbing touch-none"
+        >
+          <GripVertical className="w-5 h-5" />
+        </button>
+      )}
+      <div className="flex-1 min-w-0">
+        <TrackItem 
+          track={track} 
+          queue={queue} 
+          onRemove={isSelfCreated ? onRemove : undefined}
+        />
+      </div>
+    </div>
+  );
 }
 
 export default function PlaylistPage() {
@@ -28,6 +91,15 @@ export default function PlaylistPage() {
   const [removeSongTarget, setRemoveSongTarget] = useState<Track | null>(null);
   const [savePlaylistTarget, setSavePlaylistTarget] = useState(false);
   const playTrack = usePlayerStore((state) => state.playTrack);
+
+  const sensors = useSensors(
+    useSensor(PointerSensor, {
+      activationConstraint: { distance: 8 },
+    }),
+    useSensor(TouchSensor, {
+      activationConstraint: { delay: 200, tolerance: 5 },
+    })
+  );
 
   useEffect(() => {
     const loadPlaylist = async () => {
@@ -141,7 +213,26 @@ export default function PlaylistPage() {
       setSavePlaylistTarget(false);
   };
 
-  const isSelfCreated = /^\d+$/.test(playlist.id);
+  const handleDragEnd = async (event: DragEndEvent) => {
+    const { active, over } = event;
+    if (!over || active.id === over.id || !playlist) return;
+
+    const oldIndex = playlist.tracks.findIndex((t, i) => t.videoId + '-' + i === active.id);
+    const newIndex = playlist.tracks.findIndex((t, i) => t.videoId + '-' + i === over.id);
+
+    if (oldIndex === -1 || newIndex === -1) return;
+
+    const newTracks = arrayMove(playlist.tracks, oldIndex, newIndex);
+    const updatedPlaylist = { ...playlist, tracks: newTracks };
+    setPlaylist(updatedPlaylist);
+    
+    // Save to database
+    if (isSaved) {
+      await db.addPlaylist(updatedPlaylist);
+    }
+  };
+
+  const isSelfCreated = !(/^PL|^OL|^RD/.test(playlist.id));
 
   return (
     <main className="min-h-screen pb-20">
@@ -205,6 +296,23 @@ export default function PlaylistPage() {
           <div className="text-center text-white/50 py-12">
             Belum ada lagu di playlist ini.
           </div>
+        ) : isSelfCreated ? (
+          <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
+            <SortableContext items={playlist.tracks.map((t, i) => t.videoId + '-' + i)} strategy={verticalListSortingStrategy}>
+              <div className="space-y-1">
+                {playlist.tracks.map((track, index) => (
+                  <SortableTrackItem
+                    key={track.videoId + '-' + index}
+                    track={track}
+                    index={index}
+                    queue={playlist.tracks}
+                    onRemove={handleRemoveSong}
+                    isSelfCreated={isSelfCreated}
+                  />
+                ))}
+              </div>
+            </SortableContext>
+          </DndContext>
         ) : (
           <div className="space-y-1">
             {playlist.tracks.map((track, index) => (
@@ -212,7 +320,6 @@ export default function PlaylistPage() {
                 key={`${track.videoId}-${index}`} 
                 track={track} 
                 queue={playlist.tracks} 
-                onRemove={isSelfCreated ? handleRemoveSong : undefined}
               />
             ))}
           </div>

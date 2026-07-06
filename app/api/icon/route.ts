@@ -4,7 +4,7 @@ import { join } from 'path';
 
 export async function GET() {
   try {
-    const iconPath = join(process.cwd(), 'public', 'icon.jpg');
+    const iconPath = join(process.cwd(), 'public', 'icon.png');
     const buffer = await readFile(iconPath);
     
     return new NextResponse(buffer, {

@@ -22,3 +22,7 @@
     animation: marquee 12s linear infinite;
   }
 }
+
+body.pip-active > *:not(.fixed.inset-0.z-\\[999999\\]):not(script):not(style) {
+  display: none !important;
+}

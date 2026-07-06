@@ -33,6 +33,8 @@ interface PlayerState {
   originalQueue: Track[];
   isShuffle: boolean;
   repeatMode: 'off' | 'all' | 'one';
+  sleepTimer: number | null; // timestamp when playback should stop
+  activeMenuTrack: Track | null;
   
   playTrack: (track: Track, queue?: Track[], context?: 'playlist' | 'similar') => void;
   playNext: () => Promise<void>;
@@ -49,6 +51,8 @@ interface PlayerState {
   toggleShuffle: () => void;
   toggleRepeat: () => void;
   reorderQueue: (startIndex: number, endIndex: number) => void;
+  setSleepTimer: (minutes: number | null) => void;
+  setActiveMenuTrack: (track: Track | null) => void;
 }
 
 export const usePlayerStore = create<PlayerState>()(
@@ -71,6 +75,8 @@ export const usePlayerStore = create<PlayerState>()(
       originalQueue: [],
       isShuffle: false,
       repeatMode: 'off',
+      sleepTimer: null,
+      activeMenuTrack: null,
 
       playTrack: (rawTrack, rawQueue, context = 'similar') => {
         const track = {
@@ -347,6 +353,15 @@ export const usePlayerStore = create<PlayerState>()(
         
         set({ queue: newQueue, queueIndex: newIndex !== -1 ? newIndex : get().queueIndex });
       },
+
+      setSleepTimer: (minutes: number | null) => {
+        if (minutes === null) {
+          set({ sleepTimer: null });
+        } else {
+          set({ sleepTimer: Date.now() + minutes * 60 * 1000 });
+        }
+      },
+      setActiveMenuTrack: (track: Track | null) => set({ activeMenuTrack: track }),
     }),
     {
       name: 'player-storage',
@@ -357,6 +372,131 @@ export const usePlayerStore = create<PlayerState>()(
         isShuffle: state.isShuffle,
         repeatMode: state.repeatMode
       }),
+    }
+  )
+);
+
+export interface User {
+  id: string;
+  name: string;
+  email: string;
+  avatarUrl: string;
+  isPremium: boolean;
+  premiumExpiresAt?: string;
+  isAdmin?: boolean;
+  joinDate: string;
+  followers: number;
+  following: number;
+  totalListeningHours: number;
+  bannerUrl?: string;
+  sessionInfo?: { access_token: string; refresh_token: string };
+}
+
+interface AuthState {
+  user: User | null;
+  isAuthenticated: boolean;
+  savedAccounts: User[];
+  login: (userData: User) => void;
+  logout: () => void;
+  updateUser: (data: Partial<User>) => void;
+  removeSavedAccount: (id: string) => void;
+}
+
+export const useAuthStore = create<AuthState>()(
+  persist(
+    (set) => ({
+      user: null,
+      isAuthenticated: false,
+      savedAccounts: [],
+      login: (userData) => set((state) => {
+        const filtered = state.savedAccounts.filter(a => a.id !== userData.id);
+        const newAccounts = [userData, ...filtered].slice(0, 2);
+        return { user: userData, isAuthenticated: true, savedAccounts: newAccounts };
+      }),
+      logout: () => set({ user: null, isAuthenticated: false }),
+      updateUser: (data) => set((state) => {
+        if (!state.user) return { user: null };
+        const updatedUser = { ...state.user, ...data };
+        return { 
+          user: updatedUser,
+          savedAccounts: state.savedAccounts.map(a => a.id === updatedUser.id ? updatedUser : a)
+        };
+      }),
+      removeSavedAccount: (id) => set((state) => ({
+        savedAccounts: state.savedAccounts.filter(a => a.id !== id)
+      })),
+    }),
+    {
+      name: 'auth-storage',
+    }
+  )
+);
+
+export interface SettingsState {
+  dataSaver: boolean;
+  reduceMotion: boolean;
+  privateSession: boolean;
+  gaplessPlayback: boolean;
+  autoplay: boolean;
+  autoPip: boolean;
+  setDataSaver: (val: boolean) => void;
+  setReduceMotion: (val: boolean) => void;
+  setPrivateSession: (val: boolean) => void;
+  setGaplessPlayback: (val: boolean) => void;
+  setAutoplay: (val: boolean) => void;
+  setAutoPip: (val: boolean) => void;
+}
+
+export const useSettingsStore = create<SettingsState>()(
+  persist(
+    (set) => ({
+      dataSaver: false,
+      reduceMotion: false,
+      privateSession: false,
+      gaplessPlayback: true,
+      autoplay: true,
+      autoPip: false,
+      setDataSaver: (val) => set({ dataSaver: val }),
+      setReduceMotion: (val) => set({ reduceMotion: val }),
+      setPrivateSession: (val) => set({ privateSession: val }),
+      setGaplessPlayback: (val) => set({ gaplessPlayback: val }),
+      setAutoplay: (val) => set({ autoplay: val }),
+      setAutoPip: (val) => set({ autoPip: val }),
+    }),
+    {
+      name: 'settings-storage',
+    }
+  )
+);
+
+export interface PartyMember {
+  id: string;
+  name: string;
+  avatarUrl: string;
+  isHost: boolean;
+}
+
+interface PartyState {
+  roomId: string | null;
+  isHost: boolean;
+  members: PartyMember[];
+  setParty: (roomId: string, isHost: boolean) => void;
+  setMembers: (members: PartyMember[]) => void;
+  leaveParty: () => void;
+}
+
+export const usePartyStore = create<PartyState>()(
+  persist(
+    (set) => ({
+      roomId: null,
+      isHost: false,
+      members: [],
+      setParty: (roomId, isHost) => set({ roomId, isHost }),
+      setMembers: (members) => set({ members }),
+      leaveParty: () => set({ roomId: null, isHost: false, members: [] }),
+    }),
+    {
+      name: 'party-storage',
     }
   )
 );

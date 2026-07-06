@@ -60,7 +60,7 @@ export async function GET(request: Request) {
     
     // Suppress 400 errors as they just mean the ID is invalid
     if (error?.isAxiosError && error?.response?.status === 400) {
-      return NextResponse.json({ error: 'Invalid playlist/album ID' }, { status: 400 });
+      return NextResponse.json({ error: 'Invalid playlist/album ID', videos: [] }, { status: 200 });
     }
     
     console.error(`Error fetching playlist/album for id ${id}:`, error?.message || error);

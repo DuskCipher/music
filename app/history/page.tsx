@@ -2,7 +2,8 @@
 
 import { ArrowLeft, Search, MoreVertical } from 'lucide-react';
 import { useRouter } from 'next/navigation';
-import { usePlayerStore } from '@/lib/store';
+import { usePlayerStore, useAuthStore } from '@/lib/store';
+import { db } from '@/lib/db';
 import Image from 'next/image';
 import { getHighResImage } from '@/lib/utils';
 import { useEffect, useState } from 'react';
@@ -10,16 +11,21 @@ import { MarqueeText } from '@/components/MarqueeText';
 
 export default function HistoryPage() {
   const router = useRouter();
-  const history = usePlayerStore((state) => state.history);
   const playTrack = usePlayerStore((state) => state.playTrack);
+  const setActiveMenuTrack = usePlayerStore((state) => state.setActiveMenuTrack);
+  const { isAuthenticated } = useAuthStore();
+  const [dbHistory, setDbHistory] = useState<any[]>([]);
   const [mounted, setMounted] = useState(false);
 
   useEffect(() => {
-    // eslint-disable-next-line react-hooks/set-state-in-effect
     setMounted(true);
+    db.getHistory().then(setDbHistory);
   }, []);
 
   if (!mounted) return null;
+
+  // 100% database - no local fallback
+  const history = dbHistory;
 
   // Group history by Today, This Week, etc.
   const today = new Date();
@@ -49,7 +55,7 @@ export default function HistoryPage() {
 
     return (
       <div 
-        key={item.playedAt + track.videoId} 
+        key={track.videoId} 
         className="flex items-center gap-4 py-2 cursor-pointer hover:bg-white/5 px-4 rounded-xl transition-colors"
         onClick={() => playTrack(track, history.map(h => h.track))}
       >
@@ -63,7 +69,13 @@ export default function HistoryPage() {
             className="text-white/60 text-sm" 
           />
         </div>
-        <button className="p-2 text-white/60 hover:text-white transition-colors">
+        <button 
+          className="p-2 text-white/60 hover:text-white transition-colors"
+          onClick={(e) => {
+            e.stopPropagation();
+            setActiveMenuTrack(track);
+          }}
+        >
           <MoreVertical className="w-5 h-5" />
         </button>
       </div>

@@ -3,21 +3,23 @@ import './globals.css'; // Global styles
 import { BottomNav } from '@/components/BottomNav';
 import { Player } from '@/components/Player';
 import { AddToPlaylistModal } from '@/components/AddToPlaylistModal';
+import { TrackMenu } from '@/components/TrackMenu';
 import { PWARegister } from '@/components/PWARegister';
 import { BackgroundProvider } from '@/components/BackgroundProvider';
+import { AuthProvider } from '@/components/AuthProvider';
 
 export const metadata: Metadata = {
-  title: 'Music App',
+  title: 'Stream Beats',
   description: 'Platform streaming musik modern gratis tanpa iklan',
   manifest: '/manifest.json',
   appleWebApp: {
     capable: true,
     statusBarStyle: 'black-translucent',
-    title: 'Music App',
+    title: 'Stream Beats',
   },
   icons: {
-    icon: '/icon.jpg',
-    apple: '/icon.jpg',
+    icon: '/icon.png',
+    apple: '/icon.png',
   },
 };
 
@@ -29,12 +31,14 @@ export default function RootLayout({children}: {children: React.ReactNode}) {
   return (
     <html lang="en">
       <body className="text-white antialiased pb-24 min-h-screen" suppressHydrationWarning>
+        <AuthProvider />
         <BackgroundProvider />
         <PWARegister />
         {children}
         <Player />
         <BottomNav />
         <AddToPlaylistModal />
+        <TrackMenu />
       </body>
     </html>
   );

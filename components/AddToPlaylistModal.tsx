@@ -56,7 +56,7 @@ export function AddToPlaylistModal() {
     if (!newPlaylistName.trim() || !trackToAdd) return;
 
     const newPlaylist: Playlist = {
-      id: Date.now().toString(),
+      id: crypto.randomUUID(),
       name: newPlaylistName.trim(),
       img: getHighResImage(trackToAdd.thumbnails?.[trackToAdd.thumbnails.length - 1]?.url, 400),
       tracks: [trackToAdd]
@@ -71,7 +71,7 @@ export function AddToPlaylistModal() {
   if (!trackToAdd) return null;
 
   return (
-    <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-black/60 backdrop-blur-sm p-4 sm:p-0">
+    <div className="fixed inset-0 z-[999] flex items-end sm:items-center justify-center bg-black/60 backdrop-blur-sm p-4 sm:p-0">
       <div 
         className="bg-[#1C1C1E] w-full sm:w-[400px] max-h-[80vh] rounded-t-3xl sm:rounded-3xl flex flex-col overflow-hidden animate-in slide-in-from-bottom-full sm:slide-in-from-bottom-0 sm:zoom-in-95 duration-300"
         onClick={(e) => e.stopPropagation()}

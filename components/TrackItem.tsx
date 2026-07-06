@@ -10,7 +10,7 @@ export function TrackItem({ track, queue, onRemove }: { track: Track; queue?: Tr
   const playTrack = usePlayerStore((state) => state.playTrack);
   const currentTrack = usePlayerStore((state) => state.currentTrack);
   const isPlaying = usePlayerStore((state) => state.isPlaying);
-  const setTrackToAdd = usePlayerStore((state) => state.setTrackToAdd);
+  const setActiveMenuTrack = usePlayerStore((state) => state.setActiveMenuTrack);
   const isCurrent = currentTrack?.videoId === track.videoId;
 
   const thumbnail = getHighResImage(track.thumbnails?.[track.thumbnails.length - 1]?.url, 200);
@@ -53,7 +53,7 @@ export function TrackItem({ track, queue, onRemove }: { track: Track; queue?: Tr
           className="p-2 text-white/50 hover:text-white transition-colors"
           onClick={(e) => {
             e.stopPropagation();
-            setTrackToAdd(track);
+            setActiveMenuTrack(track);
           }}
         >
           <MoreHorizontal className="w-5 h-5" />

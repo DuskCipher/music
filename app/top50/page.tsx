@@ -3,6 +3,7 @@
 import { ArrowLeft, Search, Play, Shuffle, MoreVertical } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { usePlayerStore } from '@/lib/store';
+import { db } from '@/lib/db';
 import Image from 'next/image';
 import { getHighResImage } from '@/lib/utils';
 import { useEffect, useState } from 'react';
@@ -10,21 +11,21 @@ import { MarqueeText } from '@/components/MarqueeText';
 
 export default function Top50Page() {
   const router = useRouter();
-  const history = usePlayerStore((state) => state.history);
   const playCounts = usePlayerStore((state) => state.playCounts);
   const playTrack = usePlayerStore((state) => state.playTrack);
+  const setActiveMenuTrack = usePlayerStore((state) => state.setActiveMenuTrack);
   const [mounted, setMounted] = useState(false);
+  const [dbHistory, setDbHistory] = useState<any[]>([]);
 
   useEffect(() => {
-    // eslint-disable-next-line react-hooks/set-state-in-effect
     setMounted(true);
+    db.getHistory().then(setDbHistory);
   }, []);
 
   if (!mounted) return null;
 
-  // Calculate top 50 tracks
-  // We need to get the track details from history, so we'll map over history to get unique tracks
-  const uniqueTracks = Array.from(new Map(history.map(item => [item.track.videoId, item.track])).values());
+  // Calculate top 50 tracks from DB history
+  const uniqueTracks = Array.from(new Map(dbHistory.map(item => [item.track.videoId, item.track])).values());
   
   const topTracks = uniqueTracks
     .map(track => ({
@@ -93,7 +94,7 @@ export default function Top50Page() {
 
       <div className="space-y-1">
         {topTracks.map((track, index) => {
-          const artistName = Array.isArray(track.artist) ? track.artist.map(a => a.name).join(', ') : track.artist?.name || 'Unknown Artist';
+          const artistName = Array.isArray(track.artist) ? track.artist.map((a: any) => a.name).join(', ') : track.artist?.name || 'Unknown Artist';
           
           return (
             <div 
@@ -111,7 +112,13 @@ export default function Top50Page() {
                   className="text-white/60 text-sm" 
                 />
               </div>
-              <button className="p-2 text-white/60 hover:text-white transition-colors">
+              <button 
+                className="p-2 text-white/60 hover:text-white transition-colors"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  setActiveMenuTrack(track);
+                }}
+              >
                 <MoreVertical className="w-5 h-5" />
               </button>
             </div>
