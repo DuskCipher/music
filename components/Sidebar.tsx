@@ -167,10 +167,17 @@ export function Sidebar({ isOpen, onClose }: SidebarProps) {
                   <button 
                     onClick={() => { 
                       onClose(); 
-                      const newRoomId = Math.random().toString(36).substring(2, 9);
                       import('@/lib/store').then(({ usePartyStore }) => {
-                        usePartyStore.getState().setParty(newRoomId, true);
-                        router.push(`/party/${newRoomId}`);
+                        const state = usePartyStore.getState();
+                        if (state.roomId) {
+                          // Jika sudah di dalam sesi, arahkan ke ruangan saat ini
+                          router.push(`/party/${state.roomId}`);
+                        } else {
+                          // Jika belum ada sesi, buat baru
+                          const newRoomId = Math.random().toString(36).substring(2, 9);
+                          state.setParty(newRoomId, true);
+                          router.push(`/party/${newRoomId}`);
+                        }
                       });
                     }}
                     className="flex items-center gap-4 px-5 py-3 text-green-400 hover:text-green-300 hover:bg-green-500/10 transition-colors text-left w-full"

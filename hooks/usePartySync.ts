@@ -108,6 +108,14 @@ export function usePartySync(playerRef: React.MutableRefObject<any>) {
           avatar_url: user.avatarUrl,
           isHost: isHost
         });
+        
+        // Request sync from host when joining
+        if (!isHost) {
+          channel.send({
+            type: 'broadcast',
+            event: 'request_sync',
+          });
+        }
       }
     });
 
@@ -118,6 +126,27 @@ export function usePartySync(playerRef: React.MutableRefObject<any>) {
   }, [roomId, user?.id, isHost]);
 
   // Host Broadcasting Effects
+  useEffect(() => {
+    if (isHost && channelRef.current) {
+      const handleRequestSync = () => {
+        const state = usePlayerStore.getState();
+        if (state.currentTrack) {
+          channelRef.current.send({
+            type: 'broadcast',
+            event: 'sync_state',
+            payload: { 
+              track: state.currentTrack,
+              isPlaying: state.isPlaying,
+              progress: state.progress
+            }
+          });
+        }
+      };
+
+      channelRef.current.on('broadcast', { event: 'request_sync' }, handleRequestSync);
+    }
+  }, [isHost]);
+
   useEffect(() => {
     if (isHost && channelRef.current && currentTrack && !isSyncing.current) {
       channelRef.current.send({
