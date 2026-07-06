@@ -3,7 +3,6 @@
 import { useEffect, useState } from 'react';
 import { useRouter, useParams } from 'next/navigation';
 import { useAuthStore, usePartyStore } from '@/lib/store';
-import { Button } from '@/components/ui/button';
 import { Headphones, Users, Share2, Copy, LogOut, Crown } from 'lucide-react';
 import Image from 'next/image';
 
@@ -57,28 +56,26 @@ export default function PartyPage() {
             
             {currentRoomId === roomId ? (
               <div className="flex items-center gap-3">
-                <Button 
+                <button 
                   onClick={handleCopyLink}
-                  variant="outline"
-                  className="bg-zinc-800/50 border-white/10 hover:bg-zinc-800 text-white"
+                  className="flex items-center justify-center rounded-md px-4 py-2 text-sm font-medium border bg-zinc-800/50 border-white/10 hover:bg-zinc-800 text-white transition-colors"
                 >
                   {copied ? 'Tersalin!' : <><Share2 className="w-4 h-4 mr-2" /> Bagikan Link</>}
-                </Button>
-                <Button 
+                </button>
+                <button 
                   onClick={handleLeave}
-                  variant="destructive"
-                  className="bg-red-500/20 text-red-500 hover:bg-red-500 hover:text-white"
+                  className="flex items-center justify-center rounded-md px-4 py-2 text-sm font-medium bg-red-500/20 text-red-500 hover:bg-red-500 hover:text-white transition-colors"
                 >
                   <LogOut className="w-4 h-4 mr-2" /> Keluar
-                </Button>
+                </button>
               </div>
             ) : (
-              <Button 
+              <button 
                 onClick={handleJoin}
-                className="bg-green-500 hover:bg-green-400 text-black font-semibold px-8 py-6 rounded-full"
+                className="flex items-center justify-center bg-green-500 hover:bg-green-400 text-black font-semibold px-8 py-4 rounded-full transition-colors text-lg"
               >
                 Gabung Sesi
-              </Button>
+              </button>
             )}
           </div>
 
