@@ -250,6 +250,24 @@ export const db = {
     return !!data;
   },
 
+  // NOTIFICATIONS
+  async getNotifications() {
+    const userId = await getUserId();
+    if (!userId) return [];
+    try {
+      const { data, error } = await supabase
+        .from('notifications')
+        .select('*')
+        .eq('user_id', userId)
+        .order('created_at', { ascending: false })
+        .limit(20);
+      if (error) return [];
+      return data || [];
+    } catch {
+      return [];
+    }
+  },
+
   // RECENT SEARCHES
   async getRecentSearches() {
     const userId = await getUserId();

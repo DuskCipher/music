@@ -1,6 +1,6 @@
 'use client';
 
-import { ChevronLeft, ChevronRight, Home, Search, Bell, Users } from 'lucide-react';
+import { ChevronLeft, ChevronRight, Home, Search, Bell, Users, Crown } from 'lucide-react';
 import { useRouter, usePathname } from 'next/navigation';
 import { useAuthStore } from '@/lib/store';
 import Image from 'next/image';
@@ -12,6 +12,13 @@ export function TopBar() {
   const { user, isAuthenticated } = useAuthStore();
   const [searchQuery, setSearchQuery] = useState('');
   const [showNotifications, setShowNotifications] = useState(false);
+  const [notifications, setNotifications] = useState<any[]>([]);
+
+  useEffect(() => {
+    import('@/lib/db').then(({ db }) => {
+      db.getNotifications().then(setNotifications);
+    });
+  }, []);
 
   const handleSearch = (e: React.FormEvent) => {
     e.preventDefault();
@@ -64,7 +71,31 @@ export function TopBar() {
       {/* Profile & Extras (Right) */}
       <div className="flex items-center gap-4 shrink-0">
         <button 
-          onClick={() => router.push('/party')}
+          onClick={() => router.push('/premium')}
+          className="flex items-center gap-2 px-3 py-1.5 rounded-full bg-zinc-800 hover:bg-zinc-700 text-yellow-400 hover:text-yellow-300 transition-colors"
+          title="Premium"
+        >
+          <Crown className="w-4 h-4" />
+          <span className="text-xs font-bold hidden xl:inline">Premium</span>
+        </button>
+
+        <button 
+          onClick={() => {
+            if (!user?.isPremium) {
+              router.push('/premium');
+              return;
+            }
+            import('@/lib/store').then(({ usePartyStore }) => {
+              const state = usePartyStore.getState();
+              if (state.roomId) {
+                router.push(`/party/${state.roomId}`);
+              } else {
+                const newRoomId = Math.random().toString(36).substring(2, 9);
+                state.setParty(newRoomId, true);
+                router.push(`/party/${newRoomId}`);
+              }
+            });
+          }}
           className="w-8 h-8 flex items-center justify-center rounded-full hover:bg-zinc-800 text-zinc-400 hover:text-white transition-colors"
           title="Dengar Bareng (Party)"
         >
@@ -92,9 +123,24 @@ export function TopBar() {
                 <div className="p-4 border-b border-zinc-800 flex items-center justify-between">
                   <h3 className="font-bold text-white">Notifikasi</h3>
                 </div>
-                <div className="p-4 flex flex-col items-center justify-center min-h-[150px] text-zinc-500">
-                  <Bell className="w-8 h-8 mb-2 opacity-50" />
-                  <p className="text-sm">Belum ada notifikasi baru.</p>
+                <div className="flex flex-col max-h-[300px] overflow-y-auto">
+                  {notifications.length > 0 ? (
+                    notifications.map((notif: any) => (
+                      <div key={notif.id} className="p-4 border-b border-zinc-800/50 hover:bg-zinc-800/50 cursor-pointer transition-colors">
+                        <p className="text-sm text-white">{notif.title || notif.message}</p>
+                        {notif.created_at && (
+                          <span className="text-xs text-zinc-500 mt-1 block">
+                            {new Date(notif.created_at).toLocaleDateString()}
+                          </span>
+                        )}
+                      </div>
+                    ))
+                  ) : (
+                    <div className="p-4 flex flex-col items-center justify-center min-h-[150px] text-zinc-500">
+                      <Bell className="w-8 h-8 mb-2 opacity-50" />
+                      <p className="text-sm">Belum ada notifikasi baru.</p>
+                    </div>
+                  )}
                 </div>
               </div>
             </>

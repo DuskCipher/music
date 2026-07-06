@@ -174,14 +174,14 @@ export default function PremiumPage() {
             </div>
 
             <h1 className="text-4xl md:text-5xl font-black text-white mb-6 leading-tight tracking-tight">
-              Dengarkan tanpa batas. Coba 2 bulan paket Premium Standard seharga Rp 59.900 dengan Stream Beats.
+              Dengarkan tanpa batas. Nikmati gratis 1 bulan layanan Premium Standard untuk merasakan pengalaman terbaik dengan Stream Beats.
             </h1>
 
             <button className="w-full bg-white text-black font-bold py-3.5 rounded-full text-[15px] hover:scale-[1.02] active:scale-[0.98] transition-transform mb-4">
-              Coba 2 bulan seharga Rp 59.900
+              Dapatkan 1 Bulan Gratis
             </button>
             <p className="text-[#a7a7a7] text-xs leading-relaxed">
-              Rp 59.900 selama 2 bulan, lalu Rp 59.900 per bulan sesudahnya. Tawaran hanya berlaku kalau kamu belum pernah mencoba Premium dan kamu berlangganan melalui Stream Beats. Tawaran mungkin berbeda. <span className="underline cursor-pointer">Persyaratan berlaku.</span> Lihat paket lainnya di bawah ini.
+              Gratis selama 1 bulan pertama, lalu Rp 10.000 per bulan sesudahnya. Penawaran ini khusus untuk pengguna baru agar dapat merasakan layanan Premium sepenuhnya. <span className="underline cursor-pointer">Persyaratan berlaku.</span> Lihat paket lainnya di bawah ini.
             </p>
           </div>
         </div>

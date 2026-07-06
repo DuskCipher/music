@@ -60,8 +60,7 @@ export default function LyricsPage() {
       const lineElements = container.querySelectorAll('.lyric-line');
       if (lineElements[activeIndex]) {
         const targetLine = lineElements[activeIndex] as HTMLElement;
-        const targetScroll = targetLine.offsetTop - container.clientHeight / 2 + targetLine.clientHeight / 2;
-        container.scrollTo({ top: targetScroll, behavior: 'smooth' });
+        targetLine.scrollIntoView({ behavior: 'smooth', block: 'center' });
       }
     }
   }, [progress, duration, lyrics, lyricsType]);

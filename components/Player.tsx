@@ -45,6 +45,8 @@ export function Player() {
   const setSleepTimer = usePlayerStore((state) => state.setSleepTimer);
   const isRightSidebarOpen = usePlayerStore((state) => state.isRightSidebarOpen);
   const toggleRightSidebar = usePlayerStore((state) => state.toggleRightSidebar);
+  const rightSidebarMode = usePlayerStore((state) => state.rightSidebarMode);
+  const setRightSidebarMode = usePlayerStore((state) => state.setRightSidebarMode);
   const dataSaver = useSettingsStore((state) => state.dataSaver);
 
   const [isLiked, setIsLiked] = useState(false);
@@ -1050,16 +1052,30 @@ export function Player() {
           </button>
           
           <button 
-            onClick={toggleRightSidebar}
-            className={`transition ${isRightSidebarOpen ? 'text-green-500 hover:text-green-400' : 'text-zinc-400 hover:text-white'}`}
+            onClick={() => {
+              if (isRightSidebarOpen && rightSidebarMode === 'info') {
+                toggleRightSidebar();
+              } else {
+                if (!isRightSidebarOpen) toggleRightSidebar();
+                setRightSidebarMode('info');
+              }
+            }}
+            className={`transition ${isRightSidebarOpen && rightSidebarMode === 'info' ? 'text-green-500 hover:text-green-400' : 'text-zinc-400 hover:text-white'}`}
             title="Now Playing View"
           >
             <PanelRight className="w-4 h-4" />
           </button>
           
           <button 
-            onClick={() => { setExpanded(true); setShowQueue(true); }}
-            className={`transition ${showQueue && isExpanded ? 'text-green-500 hover:text-green-400' : 'text-zinc-400 hover:text-white'}`}
+            onClick={() => {
+              if (isRightSidebarOpen && rightSidebarMode === 'queue') {
+                toggleRightSidebar();
+              } else {
+                if (!isRightSidebarOpen) toggleRightSidebar();
+                setRightSidebarMode('queue');
+              }
+            }}
+            className={`transition ${isRightSidebarOpen && rightSidebarMode === 'queue' ? 'text-green-500 hover:text-green-400' : 'text-zinc-400 hover:text-white'}`}
             title="Antrean"
           >
             <ListMusic className="w-4 h-4" />

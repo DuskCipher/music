@@ -33,7 +33,7 @@ export function DesktopLayout({ children }: { children: ReactNode }) {
       */}
       <div className="hidden lg:flex flex-col h-[calc(100vh-90px)] w-full overflow-hidden bg-black p-2 gap-2">
         {/* Top Area (Navbar) */}
-        <div className="h-16 shrink-0 rounded-lg overflow-hidden">
+        <div className="h-16 shrink-0 rounded-lg relative z-50">
           <TopBar />
         </div>
 
