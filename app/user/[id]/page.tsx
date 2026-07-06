@@ -36,15 +36,15 @@ export default async function PublicProfile({ params }: { params: Promise<{ id: 
   return (
     <main className="min-h-screen bg-[#0A0A0A] pb-32">
       {/* Header */}
-      <div className="relative pt-16 pb-8 px-4 flex flex-col items-center text-center mt-10">
+      <div className="relative pt-12 pb-6 px-4 flex flex-col items-center text-center">
         {/* Banner Background */}
-        <div className="absolute -top-16 inset-x-0 h-72 -z-10 overflow-hidden">
+        <div className="absolute top-0 inset-x-0 h-48 -z-10 overflow-hidden rounded-t-3xl opacity-50">
           {profile?.banner_url ? (
-            <Image src={profile.banner_url} alt="Banner" fill className="object-cover opacity-50" />
+            <Image src={profile.banner_url} alt="Banner" fill className="object-cover" />
           ) : (
-            <div className="absolute inset-0 bg-gradient-to-b from-[#FA243C]/20 via-[#121212]/80 to-[#0A0A0A]" />
+            <div className="absolute inset-0 bg-gradient-to-b from-blue-900/40 to-[#0A0A0A]" />
           )}
-          <div className="absolute inset-0 bg-gradient-to-t from-[#0A0A0A] via-[#0A0A0A]/90 to-transparent" />
+          <div className="absolute inset-0 bg-gradient-to-t from-[#0A0A0A] to-transparent" />
         </div>
         
         <Link href="/" className="absolute top-6 left-6 w-10 h-10 bg-black/40 backdrop-blur-md rounded-full flex items-center justify-center hover:bg-black/60 transition z-10 text-white">
@@ -52,24 +52,24 @@ export default async function PublicProfile({ params }: { params: Promise<{ id: 
         </Link>
 
         {/* Avatar */}
-        <div className="relative w-40 h-40 rounded-full mb-6 shadow-2xl">
+        <div className="relative w-32 h-32 rounded-full mb-4 shadow-2xl">
           {profile?.avatar_url ? (
             <Image
               src={profile.avatar_url}
               alt={profile?.full_name || 'Pengguna'}
               fill
-              className="rounded-full object-cover border-4 border-[#0A0A0A]"
+              className="rounded-full object-cover border-4 border-white/10"
             />
           ) : (
-            <div className="w-full h-full rounded-full bg-[#282828] border-4 border-[#0A0A0A] flex items-center justify-center">
-              <span className="text-white text-5xl font-bold">{profile?.full_name?.charAt(0).toUpperCase() || 'U'}</span>
+            <div className="w-full h-full rounded-full bg-[#282828] border-4 border-white/10 flex items-center justify-center">
+              <span className="text-white text-4xl font-bold">{profile?.full_name?.charAt(0).toUpperCase() || 'U'}</span>
             </div>
           )}
         </div>
 
         {/* Info */}
-        <div className="max-w-2xl w-full">
-          <h1 className="text-4xl md:text-5xl font-extrabold text-white mb-2 tracking-tight">
+        <div>
+          <h1 className="text-3xl font-bold text-white flex items-center justify-center gap-2">
             {profile?.full_name || 'Pengguna'}
           </h1>
           
