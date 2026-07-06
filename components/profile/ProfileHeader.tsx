@@ -4,13 +4,29 @@ import { useAuthStore } from '@/lib/store';
 import { motion } from 'motion/react';
 import { Settings, Edit2, Crown, Share2, Check } from 'lucide-react';
 import Image from 'next/image';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
+import { db } from '@/lib/db';
+import { FollowsModal } from '@/components/FollowsModal';
 
 export function ProfileHeader() {
   const { user, isAuthenticated, login, logout } = useAuthStore();
   const [copied, setCopied] = useState(false);
   const router = useRouter();
+
+  const [followersCount, setFollowersCount] = useState(0);
+  const [followingCount, setFollowingCount] = useState(0);
+  const [showFollows, setShowFollows] = useState(false);
+  const [initialTab, setInitialTab] = useState<'followers' | 'following'>('followers');
+
+  useEffect(() => {
+    if (isAuthenticated && user?.id) {
+      db.getFollowCounts(user.id).then(counts => {
+        setFollowersCount(counts.followers);
+        setFollowingCount(counts.following);
+      });
+    }
+  }, [isAuthenticated, user?.id]);
 
   const handleLogin = () => {
     router.push('/auth');
@@ -76,13 +92,19 @@ export function ProfileHeader() {
         
         {/* Stats */}
         <div className="flex items-center justify-center gap-6 mt-6">
-          <div className="flex flex-col items-center">
-            <span className="text-xl font-bold text-white">{user.followers}</span>
+          <div 
+            className="flex flex-col items-center cursor-pointer hover:opacity-80 transition-opacity"
+            onClick={() => { setInitialTab('followers'); setShowFollows(true); }}
+          >
+            <span className="text-xl font-bold text-white">{followersCount}</span>
             <span className="text-xs text-white/50 uppercase tracking-wider">Pengikut</span>
           </div>
           <div className="w-px h-8 bg-white/20" />
-          <div className="flex flex-col items-center">
-            <span className="text-xl font-bold text-white">{user.following}</span>
+          <div 
+            className="flex flex-col items-center cursor-pointer hover:opacity-80 transition-opacity"
+            onClick={() => { setInitialTab('following'); setShowFollows(true); }}
+          >
+            <span className="text-xl font-bold text-white">{followingCount}</span>
             <span className="text-xs text-white/50 uppercase tracking-wider">Mengikuti</span>
           </div>
           <div className="w-px h-8 bg-white/20" />
@@ -113,6 +135,16 @@ export function ProfileHeader() {
           </button>
         </div>
       </motion.div>
+
+      {/* Follows Modal */}
+      {user && (
+        <FollowsModal
+          isOpen={showFollows}
+          onClose={() => setShowFollows(false)}
+          userId={user.id}
+          initialTab={initialTab}
+        />
+      )}
     </div>
   );
 }

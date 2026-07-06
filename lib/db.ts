@@ -166,6 +166,32 @@ export const db = {
     return !!data;
   },
 
+  async getFollowers(userId: string) {
+    const { data: follows } = await supabase.from('follows').select('follower_id').eq('following_id', userId);
+    if (!follows || !follows.length) return [];
+    
+    const ids = follows.map(f => f.follower_id);
+    const { data: profiles } = await supabase.from('profiles').select('id, name, avatar_url').in('id', ids);
+    return profiles || [];
+  },
+
+  async getFollowing(userId: string) {
+    const { data: follows } = await supabase.from('follows').select('following_id').eq('follower_id', userId);
+    if (!follows || !follows.length) return [];
+    
+    const ids = follows.map(f => f.following_id);
+    const { data: profiles } = await supabase.from('profiles').select('id, name, avatar_url').in('id', ids);
+    return profiles || [];
+  },
+
+  async getFollowCounts(userId: string) {
+    const [{ count: followers }, { count: following }] = await Promise.all([
+      supabase.from('follows').select('*', { count: 'exact', head: true }).eq('following_id', userId),
+      supabase.from('follows').select('*', { count: 'exact', head: true }).eq('follower_id', userId)
+    ]);
+    return { followers: followers || 0, following: following || 0 };
+  },
+
   async getLikedSongs() {
     const userId = await getUserId();
     if (!userId) return [];
