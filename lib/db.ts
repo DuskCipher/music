@@ -330,5 +330,128 @@ export const db = {
       supabase.from('saved_albums').delete().eq('user_id', userId),
       supabase.from('recent_searches').delete().eq('user_id', userId)
     ]);
-  }
+  },
+
+  // ============================================================
+  // MESSAGING / CHAT
+  // ============================================================
+
+  /** Ambil semua ruang obrolan yang diikuti user saat ini, beserta pesan terakhir */
+  async getChatRooms() {
+    const userId = await getUserId();
+    if (!userId) return [];
+
+    // Ambil room_id yang diikuti user ini
+    const { data: memberships, error: mErr } = await supabase
+      .from('chat_members')
+      .select('room_id')
+      .eq('user_id', userId);
+
+    if (mErr || !memberships?.length) return [];
+
+    const roomIds = memberships.map(m => m.room_id);
+
+    // Ambil data tiap room + anggota + pesan terakhir
+    const { data: rooms, error: rErr } = await supabase
+      .from('chat_rooms')
+      .select(`
+        id, name, is_group, avatar_url, created_at,
+        chat_members ( user_id ),
+        messages ( id, text, created_at, sender_id )
+      `)
+      .in('id', roomIds)
+      .order('created_at', { referencedTable: 'messages', ascending: false });
+
+    if (rErr) return [];
+    return rooms || [];
+  },
+
+  /** Buat obrolan 1-on-1 dengan pengguna lain. Jika sudah ada, kembalikan yang lama. */
+  async getOrCreateDMRoom(otherUserId: string) {
+    const userId = await getUserId();
+    if (!userId || userId === otherUserId) return null;
+
+    // Cek apakah sudah ada room DM antara kedua user ini
+    const { data: myRooms } = await supabase
+      .from('chat_members')
+      .select('room_id')
+      .eq('user_id', userId);
+
+    if (myRooms?.length) {
+      const myRoomIds = myRooms.map(r => r.room_id);
+      const { data: shared } = await supabase
+        .from('chat_members')
+        .select('room_id')
+        .eq('user_id', otherUserId)
+        .in('room_id', myRoomIds);
+
+      if (shared?.length) {
+        // Verifikasi ini adalah DM (bukan grup)
+        const { data: room } = await supabase
+          .from('chat_rooms')
+          .select('id')
+          .eq('id', shared[0].room_id)
+          .eq('is_group', false)
+          .maybeSingle();
+        if (room) return room.id;
+      }
+    }
+
+    // Buat room baru
+    const { data: newRoom, error } = await supabase
+      .from('chat_rooms')
+      .insert({ is_group: false })
+      .select('id')
+      .single();
+
+    if (error || !newRoom) return null;
+
+    // Tambahkan kedua user sebagai anggota
+    await supabase.from('chat_members').insert([
+      { room_id: newRoom.id, user_id: userId },
+      { room_id: newRoom.id, user_id: otherUserId },
+    ]);
+
+    return newRoom.id;
+  },
+
+  /** Ambil semua pesan dalam satu room */
+  async getMessages(roomId: string) {
+    const { data, error } = await supabase
+      .from('messages')
+      .select('id, text, sender_id, created_at')
+      .eq('room_id', roomId)
+      .order('created_at', { ascending: true });
+
+    if (error) return [];
+    return data || [];
+  },
+
+  /** Kirim pesan ke sebuah room */
+  async sendMessage(roomId: string, text: string) {
+    const userId = await getUserId();
+    if (!userId || !text.trim()) return null;
+
+    const { data, error } = await supabase
+      .from('messages')
+      .insert({ room_id: roomId, sender_id: userId, text: text.trim() })
+      .select()
+      .single();
+
+    if (error) { console.error(error); return null; }
+    return data;
+  },
+
+  /** Ambil info anggota sebuah room (profil pengguna lain) */
+  async getRoomMembers(roomId: string) {
+    const userId = await getUserId();
+    const { data, error } = await supabase
+      .from('chat_members')
+      .select('user_id')
+      .eq('room_id', roomId);
+
+    if (error) return [];
+    // Kembalikan semua user_id kecuali diri sendiri
+    return (data || []).map(m => m.user_id).filter(id => id !== userId);
+  },
 };
