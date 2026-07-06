@@ -36,13 +36,13 @@ export default async function PublicProfile({ params }: { params: Promise<{ id: 
   return (
     <main className="min-h-screen bg-[#0A0A0A] pb-32">
       {/* Header */}
-      <div className="relative pt-12 pb-6 px-4 flex flex-col items-center text-center">
+      <div className="relative pt-12 pb-6 px-4 flex flex-col items-center text-center overflow-hidden">
         {/* Banner Background */}
-        <div className="absolute top-0 inset-x-0 h-48 -z-10 overflow-hidden rounded-t-3xl opacity-50">
+        <div className="absolute top-0 inset-x-0 h-48 overflow-hidden">
           {profile?.banner_url ? (
-            <Image src={profile.banner_url} alt="Banner" fill className="object-cover" />
+            <Image src={profile.banner_url} alt="Banner" fill className="object-cover opacity-50" />
           ) : (
-            <div className="absolute inset-0 bg-gradient-to-b from-blue-900/40 to-[#0A0A0A]" />
+            <div className="absolute inset-0 bg-gradient-to-b from-blue-900/40 to-transparent" />
           )}
           <div className="absolute inset-0 bg-gradient-to-t from-[#0A0A0A] to-transparent" />
         </div>
