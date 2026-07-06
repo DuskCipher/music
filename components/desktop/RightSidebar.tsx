@@ -183,6 +183,7 @@ export function RightSidebar() {
               </div>
             </div>
           </div>
+        </div>
         )}
       </div>
     </div>
