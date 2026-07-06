@@ -46,8 +46,10 @@ export default function ChatRoom({ params }: { params: Promise<{ id: string }> }
     loadOtherUser();
 
     // Subscribe real-time
+    // Gunakan nama channel unik (dengan Math.random) agar tidak error saat React StrictMode re-render
+    const channelName = `room:${roomId}-${Math.random()}`;
     const channel = supabase
-      .channel(`room:${roomId}`)
+      .channel(channelName)
       .on(
         'postgres_changes',
         { event: 'INSERT', schema: 'public', table: 'messages', filter: `room_id=eq.${roomId}` },
