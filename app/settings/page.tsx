@@ -153,8 +153,8 @@ export default function Settings() {
 
   return (
     <main className="min-h-screen bg-[#0A0A0A] pb-32">
-      {/* Header */}
-      <div className="sticky top-0 z-30 bg-[#0A0A0A] flex items-center justify-between px-4 h-16">
+      {/* Header (Mobile Only) */}
+      <div className="sticky top-0 z-30 bg-[#0A0A0A] flex md:hidden items-center justify-between px-4 h-16">
         <button onClick={() => router.back()} className="w-10 h-10 flex items-center justify-start">
           <ArrowLeft className="w-6 h-6 text-white" />
         </button>

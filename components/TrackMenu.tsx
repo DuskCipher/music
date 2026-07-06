@@ -212,20 +212,17 @@ export function TrackMenu() {
       <AnimatePresence>
         {activeMenuTrack && (
           <>
-            <motion.div 
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              exit={{ opacity: 0 }}
+            <div 
+              className="fixed inset-0 z-[999] flex items-end md:items-center justify-center p-0 md:p-6"
               onClick={closeMenu}
-              className="fixed inset-0 bg-black/60 z-[999] backdrop-blur-sm"
-            />
-            <div className="fixed inset-0 z-[999] flex items-end md:items-center justify-center pointer-events-none p-0 md:p-6">
+            >
               <motion.div 
                 initial={{ y: 50, opacity: 0, scale: 0.95 }}
                 animate={{ y: 0, opacity: 1, scale: 1 }}
                 exit={{ y: 50, opacity: 0, scale: 0.95 }}
                 transition={{ type: 'spring', damping: 25, stiffness: 200 }}
-                className="w-full max-w-[420px] bg-[#1C1C1E]/95 backdrop-blur-2xl rounded-t-3xl md:rounded-3xl overflow-hidden flex flex-col max-h-[85vh] shadow-2xl border-t md:border border-white/10 pointer-events-auto"
+                onClick={(e) => e.stopPropagation()}
+                className="w-full max-w-[420px] bg-[#1C1C1E]/95 backdrop-blur-2xl rounded-t-3xl md:rounded-3xl overflow-hidden flex flex-col max-h-[85vh] shadow-2xl border-t md:border border-white/10"
               >
                 {/* Header */}
                 <div className="flex items-center gap-4 p-4 md:p-5 border-b border-white/5 sticky top-0 z-10 bg-inherit">
@@ -258,9 +255,14 @@ export function TrackMenu() {
                 <MenuItem icon={Disc} label="Buka album" onClick={handleOpenAlbum} />
                 <MenuItem icon={User} label="Buka artis" onClick={handleOpenArtist} />
                 <MenuItem icon={Users} label="Mulai Dengar Bareng" rightText="Premium" onClick={handleListenTogether} />
-                <MenuItem icon={XCircle} label="Kecualikan lagu dari profil seleramu" onClick={handleExclude} />
-                <MenuItem icon={Timer} label="Pengatur waktu tidur" onClick={handleSleepTimer} />
-                <MenuItem icon={Radio} label="Buka radio lagu" onClick={handleRadio} />
+                
+                {/* Mobile Only Options */}
+                <div className="md:hidden">
+                  <MenuItem icon={XCircle} label="Kecualikan lagu dari profil seleramu" onClick={handleExclude} />
+                  <MenuItem icon={Timer} label="Pengatur waktu tidur" onClick={handleSleepTimer} />
+                  <MenuItem icon={Radio} label="Buka radio lagu" onClick={handleRadio} />
+                </div>
+                
                 <MenuItem icon={FileText} label="Lihat kredit lagu" onClick={handleCredits} />
                 <MenuItem icon={QrCode} label="Tampilkan Kode Music Kita semua" onClick={handleQRCode} />
               </div>
