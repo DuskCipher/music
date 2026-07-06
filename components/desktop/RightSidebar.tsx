@@ -16,6 +16,7 @@ export function RightSidebar() {
   const [artistDetails, setArtistDetails] = useState<any>(null);
   const [isSubscribed, setIsSubscribed] = useState(false);
   const [isDescExpanded, setIsDescExpanded] = useState(false);
+  const [isCreditsExpanded, setIsCreditsExpanded] = useState(false);
 
   const artistName = currentTrack ? (Array.isArray(currentTrack.artist) ? currentTrack.artist.map(a => a.name).join(', ') : currentTrack.artist?.name || 'Unknown Artist') : '';
   const artistId = currentTrack ? (Array.isArray(currentTrack.artist) ? currentTrack.artist[0]?.artistId : currentTrack.artist?.artistId) : undefined;
@@ -186,11 +187,21 @@ export function RightSidebar() {
             <div className="bg-zinc-800/50 rounded-xl p-4">
               <div className="flex items-center justify-between mb-4">
                 <h3 className="font-bold text-white">Credits</h3>
-                <span className="text-xs font-semibold text-zinc-400 hover:text-white cursor-pointer transition-colors">Show all</span>
+                {Array.isArray(currentTrack.artist) && currentTrack.artist.length > 1 && (
+                  <span 
+                    onClick={() => setIsCreditsExpanded(!isCreditsExpanded)}
+                    className="text-xs font-semibold text-zinc-400 hover:text-white cursor-pointer transition-colors"
+                  >
+                    {isCreditsExpanded ? 'Show less' : 'Show all'}
+                  </span>
+                )}
               </div>
               
               <div className="flex flex-col gap-4">
-                {(Array.isArray(currentTrack.artist) ? currentTrack.artist : [currentTrack.artist]).filter(Boolean).map((art: any, index) => (
+                {(Array.isArray(currentTrack.artist) ? currentTrack.artist : [currentTrack.artist])
+                  .filter(Boolean)
+                  .slice(0, isCreditsExpanded ? undefined : 1)
+                  .map((art: any, index) => (
                   <div key={art.artistId || art.name} className="flex items-center justify-between group/credit">
                     <div>
                       <p className="font-semibold text-white group-hover/credit:underline cursor-pointer">{art.name}</p>
@@ -241,15 +252,15 @@ export function RightSidebar() {
             )}
 
             {/* Albums */}
-            {artistDetails?.albums && artistDetails.albums.length > 0 && (
+            {artistDetails?.topAlbums && artistDetails.topAlbums.length > 0 && (
               <div className="bg-zinc-800/50 rounded-xl p-4">
                 <h3 className="font-bold text-white mb-4">Albums</h3>
                 <div className="flex gap-4 overflow-x-auto no-scrollbar pb-2 -mx-2 px-2 snap-x">
-                  {artistDetails.albums.map((album: any) => (
+                  {artistDetails.topAlbums.map((album: any) => (
                     <div 
-                      key={album.playlistId || album.browseId} 
+                      key={album.albumId || album.playlistId || album.browseId} 
                       className="w-28 shrink-0 flex flex-col gap-2 cursor-pointer group/album snap-start"
-                      onClick={() => router.push(`/album/${album.playlistId || album.browseId}`)}
+                      onClick={() => router.push(`/album/${album.albumId || album.playlistId || album.browseId}`)}
                     >
                       <div className="relative w-28 h-28 rounded-lg overflow-hidden shadow-md">
                         <Image src={getHighResImage(album.thumbnails?.[0]?.url, 200)} alt={album.name || album.title} fill className="object-cover transition-transform duration-300 group-hover/album:scale-105" />
@@ -265,15 +276,15 @@ export function RightSidebar() {
             )}
 
             {/* Singles & EPs */}
-            {artistDetails?.singles && artistDetails.singles.length > 0 && (
+            {artistDetails?.topSingles && artistDetails.topSingles.length > 0 && (
               <div className="bg-zinc-800/50 rounded-xl p-4">
                 <h3 className="font-bold text-white mb-4">Singles & EPs</h3>
                 <div className="flex gap-4 overflow-x-auto no-scrollbar pb-2 -mx-2 px-2 snap-x">
-                  {artistDetails.singles.map((single: any) => (
+                  {artistDetails.topSingles.map((single: any) => (
                     <div 
-                      key={single.playlistId || single.browseId} 
+                      key={single.albumId || single.playlistId || single.browseId} 
                       className="w-28 shrink-0 flex flex-col gap-2 cursor-pointer group/single snap-start"
-                      onClick={() => router.push(`/album/${single.playlistId || single.browseId}`)}
+                      onClick={() => router.push(`/album/${single.albumId || single.playlistId || single.browseId}`)}
                     >
                       <div className="relative w-28 h-28 rounded-lg overflow-hidden shadow-md">
                         <Image src={getHighResImage(single.thumbnails?.[0]?.url, 200)} alt={single.name || single.title} fill className="object-cover transition-transform duration-300 group-hover/single:scale-105" />
@@ -281,6 +292,32 @@ export function RightSidebar() {
                       <div>
                         <p className="text-white text-sm font-medium line-clamp-1">{single.name || single.title}</p>
                         <p className="text-zinc-400 text-xs">{single.year}</p>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {/* Videos */}
+            {artistDetails?.topVideos && artistDetails.topVideos.length > 0 && (
+              <div className="bg-zinc-800/50 rounded-xl p-4">
+                <h3 className="font-bold text-white mb-4">Videos</h3>
+                <div className="flex gap-4 overflow-x-auto no-scrollbar pb-2 -mx-2 px-2 snap-x">
+                  {artistDetails.topVideos.map((video: any) => (
+                    <div 
+                      key={video.videoId} 
+                      className="w-40 shrink-0 flex flex-col gap-2 cursor-pointer group/video snap-start"
+                      onClick={() => playTrack(video, artistDetails.topVideos, 'similar')}
+                    >
+                      <div className="relative w-40 aspect-video rounded-lg overflow-hidden shadow-md">
+                        <Image src={getHighResImage(video.thumbnails?.[0]?.url, 300)} alt={video.name || video.title} fill className="object-cover transition-transform duration-300 group-hover/video:scale-105" />
+                        <div className="absolute inset-0 bg-black/20 hidden group-hover/video:flex items-center justify-center">
+                          <Play className="w-6 h-6 text-white fill-white" />
+                        </div>
+                      </div>
+                      <div>
+                        <p className="text-white text-sm font-medium line-clamp-2 leading-snug">{video.name || video.title}</p>
                       </div>
                     </div>
                   ))}

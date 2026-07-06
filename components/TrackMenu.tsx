@@ -168,14 +168,14 @@ export function TrackMenu() {
   const MenuItem = ({ icon: Icon, label, onClick, rightText }: any) => (
     <button 
       onClick={onClick}
-      className="w-full flex items-center justify-between py-4 px-4 hover:bg-white/5 transition-colors text-left"
+      className="w-full flex items-center justify-between py-3 px-4 md:px-6 hover:bg-white/10 transition-colors text-left group"
     >
       <div className="flex items-center gap-4">
-        <Icon className="w-6 h-6 text-white/80" strokeWidth={1.5} />
-        <span className="text-white font-medium text-[15px]">{label}</span>
+        <Icon className="w-5 h-5 text-white/70 group-hover:text-white transition-colors" strokeWidth={2} />
+        <span className="text-white/90 group-hover:text-white font-medium text-[14px] md:text-[15px]">{label}</span>
       </div>
       {rightText && (
-        <span className="text-green-400 font-bold text-xs">{rightText}</span>
+        <span className="text-green-400 font-semibold text-xs bg-green-500/10 px-2 py-1 rounded-full">{rightText}</span>
       )}
     </button>
   );
@@ -219,29 +219,30 @@ export function TrackMenu() {
               onClick={closeMenu}
               className="fixed inset-0 bg-black/60 z-[999] backdrop-blur-sm"
             />
-            <motion.div 
-              initial={{ y: '100%' }}
-              animate={{ y: 0 }}
-              exit={{ y: '100%' }}
-              transition={{ type: 'spring', damping: 25, stiffness: 200 }}
-              className="fixed bottom-0 left-0 right-0 max-w-lg mx-auto bg-[#1C1C1E] rounded-t-3xl z-[999] overflow-hidden flex flex-col max-h-[85vh]"
-            >
-              {/* Header */}
-              <div className="flex items-center gap-4 p-4 border-b border-white/10 sticky top-0 bg-[#1C1C1E] z-10">
-                <div className="w-14 h-14 relative rounded-md overflow-hidden shrink-0 shadow-md">
-                  <Image src={thumbnailUrl} alt={activeMenuTrack.name} fill className="object-cover" />
+            <div className="fixed inset-0 z-[999] flex items-end md:items-center justify-center pointer-events-none p-0 md:p-6">
+              <motion.div 
+                initial={{ y: 50, opacity: 0, scale: 0.95 }}
+                animate={{ y: 0, opacity: 1, scale: 1 }}
+                exit={{ y: 50, opacity: 0, scale: 0.95 }}
+                transition={{ type: 'spring', damping: 25, stiffness: 200 }}
+                className="w-full max-w-[420px] bg-[#1C1C1E]/95 backdrop-blur-2xl rounded-t-3xl md:rounded-3xl overflow-hidden flex flex-col max-h-[85vh] shadow-2xl border-t md:border border-white/10 pointer-events-auto"
+              >
+                {/* Header */}
+                <div className="flex items-center gap-4 p-4 md:p-5 border-b border-white/5 sticky top-0 z-10 bg-inherit">
+                  <div className="w-12 h-12 relative rounded-md overflow-hidden shrink-0 shadow-lg">
+                    <Image src={thumbnailUrl} alt={activeMenuTrack.name} fill className="object-cover" />
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <h3 className="text-white font-bold text-base md:text-lg truncate">{activeMenuTrack.name}</h3>
+                    <p className="text-white/50 text-xs md:text-sm truncate">{artistName}</p>
+                  </div>
+                  <button onClick={closeMenu} className="p-2 hover:bg-white/10 rounded-full transition-colors">
+                    <X className="w-5 h-5 text-white/50 hover:text-white" />
+                  </button>
                 </div>
-                <div className="flex-1 min-w-0">
-                  <h3 className="text-white font-bold text-lg truncate">{activeMenuTrack.name}</h3>
-                  <p className="text-white/60 text-sm truncate">{artistName}</p>
-                </div>
-                <button onClick={closeMenu} className="p-2 hover:bg-white/10 rounded-full transition-colors">
-                  <X className="w-6 h-6 text-white/60" />
-                </button>
-              </div>
 
-              {/* Scrollable Options */}
-              <div className="flex-1 overflow-y-auto pb-8">
+                {/* Scrollable Options */}
+                <div className="flex-1 overflow-y-auto pb-4 md:pb-2 pt-2 custom-scrollbar">
                 <MenuItem icon={Share2} label="Bagikan" onClick={handleShare} />
                 <MenuItem 
                   icon={Heart} 
@@ -263,7 +264,9 @@ export function TrackMenu() {
                 <MenuItem icon={FileText} label="Lihat kredit lagu" onClick={handleCredits} />
                 <MenuItem icon={QrCode} label="Tampilkan Kode Music Kita semua" onClick={handleQRCode} />
               </div>
-            </motion.div>
+                </div>
+              </motion.div>
+            </div>
           </>
         )}
       </AnimatePresence>
