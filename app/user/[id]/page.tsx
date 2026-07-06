@@ -36,38 +36,56 @@ export default async function PublicProfile({ params }: { params: Promise<{ id: 
   return (
     <main className="min-h-screen bg-[#0A0A0A] pb-32">
       {/* Header */}
-      <div className="relative h-72">
-        {profile?.banner_url ? (
-          <Image src={profile.banner_url} alt="Banner" fill className="object-cover opacity-60" />
-        ) : (
-          <div className="absolute inset-0 bg-gradient-to-b from-blue-900/40 to-[#0A0A0A]" />
-        )}
-        <div className="absolute inset-0 bg-gradient-to-t from-[#0A0A0A] to-transparent" />
+      <div className="relative pt-12 pb-6 px-4 flex flex-col items-center text-center">
+        {/* Banner Background */}
+        <div className="absolute top-0 inset-x-0 h-48 -z-10 overflow-hidden opacity-50">
+          {profile?.banner_url ? (
+            <Image src={profile.banner_url} alt="Banner" fill className="object-cover" />
+          ) : (
+            <div className="absolute inset-0 bg-gradient-to-b from-blue-900/40 to-[#0A0A0A]" />
+          )}
+          <div className="absolute inset-0 bg-gradient-to-t from-[#0A0A0A] to-transparent" />
+        </div>
         
         <Link href="/" className="absolute top-6 left-6 w-10 h-10 bg-black/40 backdrop-blur-md rounded-full flex items-center justify-center hover:bg-black/60 transition z-10 text-white">
           <ArrowLeft className="w-5 h-5" />
         </Link>
-        <div className="absolute bottom-6 left-6 right-6 flex flex-col sm:flex-row sm:items-end justify-between gap-4">
-          <div className="flex items-end gap-6 z-10">
-            <div className="w-24 h-24 sm:w-32 sm:h-32 rounded-full bg-white/10 border-4 border-[#0A0A0A] shadow-2xl overflow-hidden flex items-center justify-center shrink-0">
-              {profile?.avatar_url ? (
-                <Image src={profile.avatar_url} alt="User" fill className="object-cover" />
-              ) : (
-                <span className="text-white text-4xl font-bold">{profile?.full_name?.charAt(0).toUpperCase() || 'U'}</span>
-              )}
+
+        {/* Avatar */}
+        <div className="relative w-32 h-32 rounded-full mb-4 shadow-2xl bg-[#1A1A1A] border-4 border-white/10 flex items-center justify-center overflow-hidden">
+          {profile?.avatar_url ? (
+            <Image src={profile.avatar_url} alt="User" fill className="object-cover" />
+          ) : (
+            <span className="text-white text-4xl font-bold">{profile?.full_name?.charAt(0).toUpperCase() || 'U'}</span>
+          )}
+        </div>
+
+        {/* Info */}
+        <div>
+          <h1 className="text-3xl font-bold text-white flex items-center justify-center gap-2">
+            {profile?.full_name || 'Pengguna'}
+          </h1>
+          
+          {/* Stats */}
+          <div className="flex items-center justify-center gap-6 mt-6">
+            <div className="flex flex-col items-center">
+              <span className="text-xl font-bold text-white">{playlists?.length || 0}</span>
+              <span className="text-xs text-white/50 uppercase tracking-wider">Playlist</span>
             </div>
-            <div className="mb-2">
-              <h1 className="text-3xl sm:text-4xl font-bold text-white mb-2">{profile?.full_name || 'Pengguna'}</h1>
-              <div className="flex items-center gap-4 text-white/60 text-sm">
-                <span>{playlists?.length || 0} Playlist</span>
-                <span>•</span>
-                <span>{followersCount || 0} Pengikut</span>
-                <span>•</span>
-                <span>{followingCount || 0} Mengikuti</span>
-              </div>
+            <div className="w-px h-8 bg-white/20" />
+            <div className="flex flex-col items-center">
+              <span className="text-xl font-bold text-white">{followersCount || 0}</span>
+              <span className="text-xs text-white/50 uppercase tracking-wider">Pengikut</span>
+            </div>
+            <div className="w-px h-8 bg-white/20" />
+            <div className="flex flex-col items-center">
+              <span className="text-xl font-bold text-white">{followingCount || 0}</span>
+              <span className="text-xs text-white/50 uppercase tracking-wider">Mengikuti</span>
             </div>
           </div>
-          <div className="z-10 sm:mb-2 ml-32 sm:ml-0 flex items-center gap-2">
+
+          {/* Action Buttons */}
+          <div className="flex items-center justify-center gap-3 mt-6">
             <FollowButton targetUserId={id} />
             <MessageButton targetUserId={id} />
           </div>
