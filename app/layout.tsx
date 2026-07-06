@@ -27,14 +27,20 @@ export const viewport: Viewport = {
   themeColor: '#0A0A0A',
 };
 
+import { DesktopLayout } from '@/components/desktop/DesktopLayout';
+
 export default function RootLayout({children}: {children: React.ReactNode}) {
   return (
     <html lang="en">
-      <body className="text-white antialiased pb-24 min-h-screen" suppressHydrationWarning>
+      <body className="text-white antialiased min-h-screen lg:h-screen lg:overflow-hidden bg-black flex flex-col" suppressHydrationWarning>
         <AuthProvider />
         <BackgroundProvider />
         <PWARegister />
-        {children}
+        
+        <DesktopLayout>
+          {children}
+        </DesktopLayout>
+        
         <Player />
         <BottomNav />
         <AddToPlaylistModal />

@@ -21,7 +21,7 @@ export function BottomNav() {
   ];
 
   return (
-    <div className="fixed bottom-0 left-0 right-0 z-40 pb-safe">
+    <div className="fixed bottom-0 left-0 right-0 z-40 pb-safe lg:hidden">
       {/* Gradient fade above nav */}
       <div className="absolute -top-8 inset-x-0 h-8 bg-gradient-to-t from-black/80 to-transparent pointer-events-none" />
       

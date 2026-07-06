@@ -228,8 +228,8 @@ export default function Home() {
 
   return (
     <main className="min-h-screen pb-24">
-      {/* ═══════ HEADER ═══════ */}
-      <div className="sticky top-0 z-30 bg-gradient-to-b from-[#0A0A0A] via-[#0A0A0A]/95 to-transparent backdrop-blur-xl">
+      {/* ═══════ HEADER (Mobile Only) ═══════ */}
+      <div className="sticky top-0 z-30 bg-gradient-to-b from-[#0A0A0A] via-[#0A0A0A]/95 to-transparent backdrop-blur-xl lg:hidden">
         <div className="flex items-center justify-between px-5 pt-4 pb-3">
           <div className="flex items-center gap-3">
             <button 

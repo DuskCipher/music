@@ -569,7 +569,7 @@ export function Player() {
             initial={{ y: 100, opacity: 0 }}
             animate={{ y: 0, opacity: 1 }}
             exit={{ y: 100, opacity: 0 }}
-            className="fixed bottom-[80px] left-4 right-4 z-50 bg-[#1C1C1E]/95 backdrop-blur-md rounded-full flex items-center p-2 pr-4 cursor-pointer shadow-2xl border border-white/10"
+            className="fixed bottom-[80px] left-4 right-4 z-50 bg-[#1C1C1E]/95 backdrop-blur-md rounded-full flex items-center p-2 pr-4 cursor-pointer shadow-2xl border border-white/10 lg:hidden"
             onClick={() => setExpanded(true)}
           >
             <AnimatePresence mode="wait">
@@ -642,7 +642,7 @@ export function Player() {
             animate={{ y: 0 }}
             exit={{ y: '100%' }}
             transition={{ type: 'spring', damping: 25, stiffness: 200 }}
-            className="fixed inset-0 z-[100] flex flex-col p-6 pb-[calc(1.5rem+env(safe-area-inset-bottom))] md:pb-8"
+            className="fixed inset-0 z-[100] flex flex-col p-6 pb-[calc(1.5rem+env(safe-area-inset-bottom))] md:pb-8 lg:hidden"
             style={{
               background: dominantColor 
                 ? `radial-gradient(circle at 50% -20%, color-mix(in srgb, ${dominantColor} 80%, #0A0A0A) 0%, #0A0A0A 80%)`
@@ -957,8 +957,101 @@ export function Player() {
               </div>
             </>
           )}
-        </div>
       )}
+
+      {/* Desktop Player (Spotify style) */}
+      <div className="hidden lg:flex fixed bottom-0 left-0 right-0 h-[90px] bg-black border-t border-zinc-800 z-50 items-center justify-between px-4">
+        {/* Left: Track Info */}
+        <div className="flex items-center w-[30%] min-w-[180px]">
+          <div className="relative w-14 h-14 rounded-md overflow-hidden shrink-0 group">
+            <Image src={thumbnail} alt={currentTrack.name} fill className="object-cover" />
+            <button 
+              onClick={() => setExpanded(true)} // Or link to expand RightSidebar
+              className="absolute top-1 right-1 bg-black/60 rounded-full p-1 opacity-0 group-hover:opacity-100 transition-opacity"
+            >
+              <Maximize2 className="w-3 h-3 text-white" />
+            </button>
+          </div>
+          <div className="ml-3 flex flex-col justify-center min-w-0">
+            <span className="text-white text-sm font-medium hover:underline cursor-pointer truncate">
+              {currentTrack.title}
+            </span>
+            <span className="text-zinc-400 text-xs hover:underline cursor-pointer truncate">
+              {artistName}
+            </span>
+          </div>
+          <button 
+            onClick={() => setIsLiked(!isLiked)}
+            className="ml-4 text-zinc-400 hover:text-white transition-colors"
+          >
+            <Heart className={cn("w-4 h-4", isLiked ? "fill-green-500 text-green-500" : "")} />
+          </button>
+        </div>
+
+        {/* Center: Controls & Progress */}
+        <div className="flex flex-col items-center justify-center max-w-[40%] w-full gap-1">
+          <div className="flex items-center gap-4">
+            <button 
+              onClick={toggleShuffle}
+              className={cn("text-zinc-400 hover:text-white transition", isShuffle && "text-green-500 hover:text-green-400")}
+            >
+              <Shuffle className="w-4 h-4" />
+            </button>
+            <button onClick={playPrev} className="text-zinc-400 hover:text-white transition">
+              <SkipBack className="w-5 h-5 fill-current" />
+            </button>
+            <button
+              onClick={togglePlay}
+              className="w-8 h-8 flex items-center justify-center bg-white text-black rounded-full hover:scale-105 transition"
+            >
+              {isPlaying ? <Pause className="w-4 h-4 fill-current" /> : <Play className="w-4 h-4 fill-current ml-0.5" />}
+            </button>
+            <button onClick={playNext} className="text-zinc-400 hover:text-white transition">
+              <SkipForward className="w-5 h-5 fill-current" />
+            </button>
+            <button 
+              onClick={toggleRepeat}
+              className={cn("text-zinc-400 hover:text-white transition relative", repeatMode !== 'off' && "text-green-500 hover:text-green-400")}
+            >
+              {repeatMode === 'one' ? <Repeat1 className="w-4 h-4" /> : <Repeat className="w-4 h-4" />}
+            </button>
+          </div>
+          <div className="flex items-center w-full gap-2 text-[11px] text-zinc-400 font-medium">
+            <span>{Math.floor(progress / 60)}:{(Math.floor(progress) % 60).toString().padStart(2, '0')}</span>
+            <input 
+              type="range" 
+              min={0} 
+              max={duration || 100} 
+              value={progress} 
+              onChange={handleSeek}
+              className="w-full h-1 bg-zinc-600 rounded-full appearance-none [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:w-3 [&::-webkit-slider-thumb]:h-3 [&::-webkit-slider-thumb]:bg-white [&::-webkit-slider-thumb]:rounded-full cursor-pointer hover:[&::-webkit-slider-thumb]:block group-hover:bg-green-500"
+            />
+            <span>{Math.floor(duration / 60)}:{(Math.floor(duration) % 60).toString().padStart(2, '0')}</span>
+          </div>
+        </div>
+
+        {/* Right: Extras & Volume */}
+        <div className="flex items-center justify-end w-[30%] min-w-[180px] gap-3">
+          <button className="text-zinc-400 hover:text-white transition">
+            <Mic2 className="w-4 h-4" />
+          </button>
+          <button className="text-zinc-400 hover:text-white transition">
+            <ListMusic className="w-4 h-4" />
+          </button>
+          <div className="flex items-center gap-2 w-24 group">
+            <Volume2 className="w-4 h-4 text-zinc-400 shrink-0" />
+            <input 
+              type="range" 
+              min={0} 
+              max={100} 
+              value={volume} 
+              onChange={(e) => setVolume(Number(e.target.value))}
+              className="w-full h-1 bg-zinc-600 rounded-full appearance-none [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:w-3 [&::-webkit-slider-thumb]:h-3 [&::-webkit-slider-thumb]:bg-white [&::-webkit-slider-thumb]:rounded-full cursor-pointer group-hover:[&::-webkit-slider-thumb]:block"
+            />
+          </div>
+        </div>
+      </div>
+
     </>
   );
 }
