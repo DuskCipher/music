@@ -5,11 +5,13 @@ import { usePlayerStore } from '@/lib/store';
 import { getHighResImage } from '@/lib/utils';
 import { useEffect, useState } from 'react';
 import { db } from '@/lib/db';
-import { BadgeCheck, PanelRightClose, MoreHorizontal, ChevronLeft } from 'lucide-react';
+import { BadgeCheck, PanelRightClose, MoreHorizontal, ChevronLeft, Play } from 'lucide-react';
 import { QueueList } from '../QueueList';
+import { useRouter } from 'next/navigation';
 
 export function RightSidebar() {
-  const { currentTrack, toggleRightSidebar, rightSidebarMode, setRightSidebarMode } = usePlayerStore();
+  const router = useRouter();
+  const { currentTrack, toggleRightSidebar, rightSidebarMode, setRightSidebarMode, playTrack } = usePlayerStore();
 
   const [artistDetails, setArtistDetails] = useState<any>(null);
   const [isSubscribed, setIsSubscribed] = useState(false);
@@ -210,6 +212,82 @@ export function RightSidebar() {
                 ))}
               </div>
             </div>
+
+            {/* Top Songs */}
+            {artistDetails?.topSongs && artistDetails.topSongs.length > 0 && (
+              <div className="bg-zinc-800/50 rounded-xl p-4">
+                <h3 className="font-bold text-white mb-4">Top songs</h3>
+                <div className="flex flex-col gap-3">
+                  {artistDetails.topSongs.slice(0, 5).map((song: any) => (
+                    <div 
+                      key={song.videoId} 
+                      className="flex items-center gap-3 group/song cursor-pointer rounded-lg hover:bg-white/5 p-1 -mx-1 transition-colors"
+                      onClick={() => playTrack(song, artistDetails.topSongs, 'similar')}
+                    >
+                      <div className="relative w-10 h-10 rounded-md overflow-hidden shrink-0">
+                        <Image src={getHighResImage(song.thumbnails?.[0]?.url, 100)} alt={song.name} fill className="object-cover" />
+                        <div className="absolute inset-0 bg-black/40 hidden group-hover/song:flex items-center justify-center">
+                          <Play className="w-4 h-4 text-white fill-white" />
+                        </div>
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <p className="text-white text-sm font-medium truncate">{song.name}</p>
+                        <p className="text-zinc-400 text-xs truncate">{song.artist?.name || artistName}</p>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {/* Albums */}
+            {artistDetails?.albums && artistDetails.albums.length > 0 && (
+              <div className="bg-zinc-800/50 rounded-xl p-4">
+                <h3 className="font-bold text-white mb-4">Albums</h3>
+                <div className="flex gap-4 overflow-x-auto no-scrollbar pb-2 -mx-2 px-2 snap-x">
+                  {artistDetails.albums.map((album: any) => (
+                    <div 
+                      key={album.playlistId || album.browseId} 
+                      className="w-28 shrink-0 flex flex-col gap-2 cursor-pointer group/album snap-start"
+                      onClick={() => router.push(`/album/${album.playlistId || album.browseId}`)}
+                    >
+                      <div className="relative w-28 h-28 rounded-lg overflow-hidden shadow-md">
+                        <Image src={getHighResImage(album.thumbnails?.[0]?.url, 200)} alt={album.name || album.title} fill className="object-cover transition-transform duration-300 group-hover/album:scale-105" />
+                      </div>
+                      <div>
+                        <p className="text-white text-sm font-medium line-clamp-1">{album.name || album.title}</p>
+                        <p className="text-zinc-400 text-xs">{album.year}</p>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {/* Singles & EPs */}
+            {artistDetails?.singles && artistDetails.singles.length > 0 && (
+              <div className="bg-zinc-800/50 rounded-xl p-4">
+                <h3 className="font-bold text-white mb-4">Singles & EPs</h3>
+                <div className="flex gap-4 overflow-x-auto no-scrollbar pb-2 -mx-2 px-2 snap-x">
+                  {artistDetails.singles.map((single: any) => (
+                    <div 
+                      key={single.playlistId || single.browseId} 
+                      className="w-28 shrink-0 flex flex-col gap-2 cursor-pointer group/single snap-start"
+                      onClick={() => router.push(`/album/${single.playlistId || single.browseId}`)}
+                    >
+                      <div className="relative w-28 h-28 rounded-lg overflow-hidden shadow-md">
+                        <Image src={getHighResImage(single.thumbnails?.[0]?.url, 200)} alt={single.name || single.title} fill className="object-cover transition-transform duration-300 group-hover/single:scale-105" />
+                      </div>
+                      <div>
+                        <p className="text-white text-sm font-medium line-clamp-1">{single.name || single.title}</p>
+                        <p className="text-zinc-400 text-xs">{single.year}</p>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+
           </div>
         )}
       </div>
