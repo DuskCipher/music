@@ -2,7 +2,7 @@
 
 import { ChevronLeft, ChevronRight, Home, Search, Bell, Users, Crown } from 'lucide-react';
 import { useRouter, usePathname } from 'next/navigation';
-import { useAuthStore } from '@/lib/store';
+import { useAuthStore, usePartyStore } from '@/lib/store';
 import Image from 'next/image';
 import { useState, useEffect } from 'react';
 
@@ -10,13 +10,14 @@ export function TopBar() {
   const router = useRouter();
   const pathname = usePathname();
   const { user, isAuthenticated } = useAuthStore();
+  const partyStore = usePartyStore();
   const [searchQuery, setSearchQuery] = useState('');
   const [showNotifications, setShowNotifications] = useState(false);
   const [notifications, setNotifications] = useState<any[]>([]);
 
   useEffect(() => {
     import('@/lib/db').then(({ db }) => {
-      db.getNotifications().then(setNotifications);
+      db.getGlobalNotifications().then(setNotifications);
     });
   }, []);
 
@@ -85,16 +86,13 @@ export function TopBar() {
               router.push('/premium');
               return;
             }
-            import('@/lib/store').then(({ usePartyStore }) => {
-              const state = usePartyStore.getState();
-              if (state.roomId) {
-                router.push(`/party/${state.roomId}`);
-              } else {
-                const newRoomId = Math.random().toString(36).substring(2, 9);
-                state.setParty(newRoomId, true);
-                router.push(`/party/${newRoomId}`);
-              }
-            });
+            if (partyStore.roomId) {
+              router.push(`/party/${partyStore.roomId}`);
+            } else {
+              const newRoomId = Math.random().toString(36).substring(2, 9);
+              partyStore.setParty(newRoomId, true);
+              router.push(`/party/${newRoomId}`);
+            }
           }}
           className="w-8 h-8 flex items-center justify-center rounded-full hover:bg-zinc-800 text-zinc-400 hover:text-white transition-colors"
           title="Dengar Bareng (Party)"

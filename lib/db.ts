@@ -268,6 +268,21 @@ export const db = {
     }
   },
 
+  // GLOBAL NOTIFICATIONS
+  async getGlobalNotifications() {
+    try {
+      const { data, error } = await supabase
+        .from('global_notifications')
+        .select('*')
+        .order('created_at', { ascending: false })
+        .limit(20);
+      if (error) return [];
+      return data || [];
+    } catch {
+      return [];
+    }
+  },
+
   // RECENT SEARCHES
   async getRecentSearches() {
     const userId = await getUserId();
