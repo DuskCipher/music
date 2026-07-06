@@ -644,7 +644,7 @@ export function Player() {
             animate={{ y: 0 }}
             exit={{ y: '100%' }}
             transition={{ type: 'spring', damping: 25, stiffness: 200 }}
-            className="fixed inset-0 z-[100] flex flex-col p-6 pb-[calc(1.5rem+env(safe-area-inset-bottom))] md:pb-8 lg:hidden"
+            className="fixed inset-0 z-[100] flex flex-col p-6 pb-[calc(1.5rem+env(safe-area-inset-bottom))] md:pb-8"
             style={{
               background: dominantColor 
                 ? `radial-gradient(circle at 50% -20%, color-mix(in srgb, ${dominantColor} 80%, #0A0A0A) 0%, #0A0A0A 80%)`
@@ -1036,8 +1036,14 @@ export function Player() {
         {/* Right: Controls & Volume */}
         <div className="flex items-center justify-end w-[30%] min-w-[180px] gap-4">
           <button 
-            onClick={() => { setExpanded(true); setShowLyrics(true); }}
-            className={`transition ${showLyrics && isExpanded ? 'text-green-500 hover:text-green-400' : 'text-zinc-400 hover:text-white'}`}
+            onClick={() => {
+              if (pathname === '/lyrics') {
+                router.back();
+              } else {
+                router.push('/lyrics');
+              }
+            }}
+            className={`transition ${pathname === '/lyrics' ? 'text-green-500 hover:text-green-400' : 'text-zinc-400 hover:text-white'}`}
             title="Lirik"
           >
             <Mic2 className="w-4 h-4" />

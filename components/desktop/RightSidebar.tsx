@@ -10,19 +10,11 @@ import { BadgeCheck, PanelRightClose, MoreHorizontal } from 'lucide-react';
 export function RightSidebar() {
   const { currentTrack, toggleRightSidebar } = usePlayerStore();
 
-  if (!currentTrack) {
-    return (
-      <div className="w-full h-full bg-zinc-900 rounded-lg flex items-center justify-center p-4">
-        <p className="text-zinc-500 text-center">Putar lagu untuk melihat detailnya di sini</p>
-      </div>
-    );
-  }
-
   const [artistDetails, setArtistDetails] = useState<any>(null);
   const [isSubscribed, setIsSubscribed] = useState(false);
 
-  const artistName = Array.isArray(currentTrack.artist) ? currentTrack.artist.map(a => a.name).join(', ') : currentTrack.artist?.name || 'Unknown Artist';
-  const artistId = Array.isArray(currentTrack.artist) ? currentTrack.artist[0]?.artistId : currentTrack.artist?.artistId;
+  const artistName = currentTrack ? (Array.isArray(currentTrack.artist) ? currentTrack.artist.map(a => a.name).join(', ') : currentTrack.artist?.name || 'Unknown Artist') : '';
+  const artistId = currentTrack ? (Array.isArray(currentTrack.artist) ? currentTrack.artist[0]?.artistId : currentTrack.artist?.artistId) : undefined;
 
   useEffect(() => {
     const fetchArtist = async () => {
@@ -60,6 +52,14 @@ export function RightSidebar() {
       setIsSubscribed(true);
     }
   };
+
+  if (!currentTrack) {
+    return (
+      <div className="w-full h-full bg-zinc-900 rounded-lg flex items-center justify-center p-4">
+        <p className="text-zinc-500 text-center">Putar lagu untuk melihat detailnya di sini</p>
+      </div>
+    );
+  }
 
   return (
     <div className="w-full h-full bg-zinc-900 rounded-lg flex flex-col overflow-y-auto overflow-x-hidden">
