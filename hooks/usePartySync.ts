@@ -12,7 +12,7 @@ export function usePartySync(playerRef: React.MutableRefObject<any>) {
   const isSyncing = useRef(false);
 
   useEffect(() => {
-    if (!roomId || !user) return;
+    if (!roomId || !user?.id) return;
 
     const channel = supabase.channel(`room_${roomId}`, {
       config: {
@@ -115,7 +115,7 @@ export function usePartySync(playerRef: React.MutableRefObject<any>) {
       channel.unsubscribe();
       channelRef.current = null;
     };
-  }, [roomId, user, isHost]);
+  }, [roomId, user?.id, isHost]);
 
   // Host Broadcasting Effects
   useEffect(() => {
