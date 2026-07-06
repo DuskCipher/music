@@ -168,17 +168,13 @@ export default function Messages() {
                 key={room.id}
                 className="flex items-center gap-4 py-3 cursor-pointer hover:bg-white/5 transition rounded-lg"
               >
-                <div className="relative w-14 h-14 shrink-0">
+                <div className="relative w-14 h-14 shrink-0 rounded-full overflow-hidden bg-[#282828] flex items-center justify-center">
                   {room.displayAvatar ? (
-                    <div className="w-full h-full rounded-full overflow-hidden">
-                      <Image src={room.displayAvatar} alt={room.displayName || ''} fill className="object-cover" />
-                    </div>
+                    <Image src={room.displayAvatar} alt={room.displayName || ''} fill className="object-cover" />
                   ) : (
-                    <div className="w-full h-full rounded-full bg-[#282828] flex items-center justify-center">
-                      <span className="text-white font-bold text-lg">
-                        {(room.displayName || 'U').charAt(0).toUpperCase()}
-                      </span>
-                    </div>
+                    <span className="text-white font-bold text-lg">
+                      {(room.displayName || 'U').charAt(0).toUpperCase()}
+                    </span>
                   )}
                 </div>
 
