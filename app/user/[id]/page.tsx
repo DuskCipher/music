@@ -4,6 +4,7 @@ import Link from 'next/link';
 import { ArrowLeft, Play, Music, Users } from 'lucide-react';
 import { MarqueeText } from '@/components/MarqueeText';
 import { FollowButton } from '@/components/FollowButton';
+import { MessageButton } from '@/components/MessageButton';
 
 export default async function PublicProfile({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
@@ -66,8 +67,9 @@ export default async function PublicProfile({ params }: { params: Promise<{ id: 
               </div>
             </div>
           </div>
-          <div className="z-10 sm:mb-2 ml-32 sm:ml-0">
+          <div className="z-10 sm:mb-2 ml-32 sm:ml-0 flex items-center gap-2">
             <FollowButton targetUserId={id} />
+            <MessageButton targetUserId={id} />
           </div>
         </div>
       </div>

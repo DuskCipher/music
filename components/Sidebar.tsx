@@ -235,8 +235,8 @@ export function Sidebar({ isOpen, onClose }: SidebarProps) {
 
               {/* Message Section */}
               <div className="mt-8 px-5">
-                <div className="flex items-center justify-between mb-4">
-                  <h3 className="text-white text-lg font-bold flex items-center gap-1">
+                <div className="flex items-center justify-between mb-4 cursor-pointer" onClick={() => { onClose(); router.push('/messages'); }}>
+                  <h3 className="text-white text-lg font-bold flex items-center gap-1 hover:underline">
                     Pesan <span className="text-white/50">&gt;</span>
                   </h3>
                   <Edit className="w-5 h-5 text-white/70" />
@@ -244,7 +244,7 @@ export function Sidebar({ isOpen, onClose }: SidebarProps) {
                 <p className="text-white/60 text-sm mb-4 leading-relaxed">
                   Bagikan konten favoritmu ke teman, langsung di Aplikasi Musik.
                 </p>
-                <button onClick={() => setShowMessages(true)} className="flex items-center gap-3 bg-white/10 hover:bg-white/20 transition-colors rounded-full py-2 px-4 w-fit">
+                <button onClick={() => { onClose(); router.push('/messages'); }} className="flex items-center gap-3 bg-white/10 hover:bg-white/20 transition-colors rounded-full py-2 px-4 w-fit">
                   <Edit className="w-4 h-4 text-white" />
                   <span className="text-sm text-white font-medium">Pesan baru</span>
                 </button>
