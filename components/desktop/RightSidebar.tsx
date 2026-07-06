@@ -5,11 +5,11 @@ import { usePlayerStore } from '@/lib/store';
 import { getHighResImage } from '@/lib/utils';
 import { useEffect, useState } from 'react';
 import { db } from '@/lib/db';
-import { BadgeCheck, PanelRightClose, MoreHorizontal } from 'lucide-react';
+import { BadgeCheck, PanelRightClose, MoreHorizontal, ChevronLeft } from 'lucide-react';
 import { QueueList } from '../QueueList';
 
 export function RightSidebar() {
-  const { currentTrack, toggleRightSidebar, rightSidebarMode } = usePlayerStore();
+  const { currentTrack, toggleRightSidebar, rightSidebarMode, setRightSidebarMode } = usePlayerStore();
 
   const [artistDetails, setArtistDetails] = useState<any>(null);
   const [isSubscribed, setIsSubscribed] = useState(false);
@@ -66,10 +66,27 @@ export function RightSidebar() {
   return (
     <div className="w-full h-full bg-zinc-900 rounded-lg flex flex-col overflow-hidden">
       {/* Header */}
-      <div className="flex items-center justify-between p-4 sticky top-0 bg-zinc-900/90 backdrop-blur-md z-10">
-        <h2 className="font-bold text-base truncate pr-4 text-white hover:underline cursor-pointer">
-          {currentTrack.name}
-        </h2>
+      <div className="flex items-center justify-between p-4 sticky top-0 bg-zinc-900/90 backdrop-blur-md z-10 border-b border-white/5">
+        {rightSidebarMode === 'queue' ? (
+          <div className="flex items-center gap-2">
+            <button 
+              onClick={() => setRightSidebarMode('info')}
+              className="text-zinc-400 hover:text-white transition p-1 hover:bg-zinc-800 rounded-full"
+              title="Kembali ke Info Lagu"
+            >
+              <ChevronLeft className="w-5 h-5" />
+            </button>
+            <h2 className="font-bold text-base text-white">Antrean</h2>
+          </div>
+        ) : (
+          <h2 
+            className="font-bold text-base truncate pr-4 text-white hover:underline cursor-pointer"
+            onClick={() => setRightSidebarMode('queue')}
+            title="Lihat Antrean"
+          >
+            {currentTrack.name}
+          </h2>
+        )}
         <div className="flex items-center gap-3 text-zinc-400">
           <button className="hover:text-white transition">
             <MoreHorizontal className="w-5 h-5" />
@@ -87,8 +104,7 @@ export function RightSidebar() {
       {/* Content */}
       <div className="flex-1 overflow-y-auto no-scrollbar pb-24">
         {rightSidebarMode === 'queue' ? (
-          <div className="p-4 pt-0">
-            <h2 className="text-xl font-bold text-white mb-4">Antrean</h2>
+          <div className="p-4">
             <QueueList />
           </div>
         ) : (
@@ -171,23 +187,27 @@ export function RightSidebar() {
                 <span className="text-xs font-semibold text-zinc-400 hover:text-white cursor-pointer transition-colors">Show all</span>
               </div>
               
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="font-semibold text-white">{artistName}</p>
-                  <p className="text-sm text-zinc-400">Main Artist</p>
-                </div>
-                {artistDetails && (
-                  <button 
-                    onClick={handleSubscribe}
-                    className={`px-4 py-1.5 rounded-full border text-sm font-medium transition ${
-                      isSubscribed 
-                        ? 'bg-transparent text-white border-white/50 hover:border-white' 
-                        : 'bg-white text-black border-white hover:bg-zinc-200 hover:scale-105'
-                    }`}
-                  >
-                    {isSubscribed ? 'Following' : 'Follow'}
-                  </button>
-                )}
+              <div className="flex flex-col gap-4">
+                {(Array.isArray(currentTrack.artist) ? currentTrack.artist : [currentTrack.artist]).filter(Boolean).map((art: any, index) => (
+                  <div key={art.artistId || art.name} className="flex items-center justify-between group/credit">
+                    <div>
+                      <p className="font-semibold text-white group-hover/credit:underline cursor-pointer">{art.name}</p>
+                      <p className="text-sm text-zinc-400">{index === 0 ? 'Main Artist' : 'Featured Artist'}</p>
+                    </div>
+                    {index === 0 && artistDetails && (
+                      <button 
+                        onClick={handleSubscribe}
+                        className={`px-4 py-1.5 rounded-full border text-sm font-medium transition ${
+                          isSubscribed 
+                            ? 'bg-transparent text-white border-white/50 hover:border-white' 
+                            : 'bg-white text-black border-white hover:bg-zinc-200 hover:scale-105'
+                        }`}
+                      >
+                        {isSubscribed ? 'Following' : 'Follow'}
+                      </button>
+                    )}
+                  </div>
+                ))}
               </div>
             </div>
           </div>

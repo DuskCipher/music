@@ -9,10 +9,11 @@ import { useState, useEffect } from 'react';
 export function TopBar() {
   const router = useRouter();
   const pathname = usePathname();
-  const { user, isAuthenticated } = useAuthStore();
+  const { user, isAuthenticated, logout } = useAuthStore();
   const partyStore = usePartyStore();
   const [searchQuery, setSearchQuery] = useState('');
   const [showNotifications, setShowNotifications] = useState(false);
+  const [showProfileMenu, setShowProfileMenu] = useState(false);
   const [notifications, setNotifications] = useState<any[]>([]);
 
   useEffect(() => {
@@ -125,9 +126,10 @@ export function TopBar() {
                   {notifications.length > 0 ? (
                     notifications.map((notif: any) => (
                       <div key={notif.id} className="p-4 border-b border-zinc-800/50 hover:bg-zinc-800/50 cursor-pointer transition-colors">
-                        <p className="text-sm text-white">{notif.title || notif.message}</p>
+                        {notif.title && <p className="font-semibold text-white mb-1">{notif.title}</p>}
+                        {notif.message && <p className="text-sm text-zinc-300">{notif.message}</p>}
                         {notif.created_at && (
-                          <span className="text-xs text-zinc-500 mt-1 block">
+                          <span className="text-xs text-zinc-500 mt-2 block">
                             {new Date(notif.created_at).toLocaleDateString()}
                           </span>
                         )}
@@ -145,18 +147,52 @@ export function TopBar() {
           )}
         </div>
 
-        <button 
-          onClick={() => router.push('/settings')}
-          className="w-8 h-8 rounded-full overflow-hidden bg-zinc-800 border-2 border-black hover:scale-105 transition-transform"
-        >
-          {isAuthenticated && user?.avatarUrl ? (
-            <Image src={user.avatarUrl} alt="Profile" width={32} height={32} className="object-cover" />
-          ) : (
-            <div className="w-full h-full flex items-center justify-center bg-gradient-to-br from-orange-400 to-red-500 text-black font-bold text-sm">
-              {user?.name ? user.name.charAt(0).toUpperCase() : 'U'}
-            </div>
+        <div className="relative">
+          <button 
+            onClick={() => setShowProfileMenu(!showProfileMenu)}
+            className="w-8 h-8 rounded-full overflow-hidden bg-zinc-800 border-2 border-black hover:scale-105 transition-transform relative z-10"
+          >
+            {isAuthenticated && user?.avatarUrl ? (
+              <Image src={user.avatarUrl} alt="Profile" width={32} height={32} className="object-cover" />
+            ) : (
+              <div className="w-full h-full flex items-center justify-center bg-gradient-to-br from-orange-400 to-red-500 text-black font-bold text-sm">
+                {user?.name ? user.name.charAt(0).toUpperCase() : 'U'}
+              </div>
+            )}
+          </button>
+          
+          {/* Profile Menu Dropdown */}
+          {showProfileMenu && (
+            <>
+              {/* Invisible overlay */}
+              <div 
+                className="fixed inset-0 z-40"
+                onClick={() => setShowProfileMenu(false)}
+              />
+              <div className="absolute right-0 mt-2 w-48 bg-zinc-900 border border-zinc-800 rounded-lg shadow-2xl z-50 overflow-hidden flex flex-col py-1">
+                <button 
+                  onClick={() => { setShowProfileMenu(false); router.push('/settings'); }}
+                  className="w-full text-left px-4 py-3 text-sm text-zinc-300 hover:bg-zinc-800/50 hover:text-white transition-colors"
+                >
+                  Profil
+                </button>
+                <button 
+                  onClick={() => { setShowProfileMenu(false); router.push('/premium'); }}
+                  className="w-full text-left px-4 py-3 text-sm text-zinc-300 hover:bg-zinc-800/50 hover:text-white transition-colors"
+                >
+                  Berlangganan
+                </button>
+                <div className="h-px bg-zinc-800/50 my-1" />
+                <button 
+                  onClick={() => { setShowProfileMenu(false); logout(); router.push('/'); }}
+                  className="w-full text-left px-4 py-3 text-sm text-zinc-300 hover:bg-zinc-800/50 hover:text-white transition-colors"
+                >
+                  Keluar
+                </button>
+              </div>
+            </>
           )}
-        </button>
+        </div>
       </div>
     </div>
   );

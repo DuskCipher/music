@@ -50,13 +50,14 @@ export default function PartyPage() {
         <div className="bg-zinc-900/80 p-5 md:p-8 rounded-3xl border border-white/5 backdrop-blur-xl shadow-2xl">
           {/* Header Section */}
           <div className="flex flex-col md:flex-row md:items-center justify-between gap-6 mb-8">
-            <div className="flex items-center gap-4">
-              <div className="w-14 h-14 md:w-16 md:h-16 shrink-0 bg-gradient-to-br from-green-400 to-green-600 rounded-2xl flex items-center justify-center shadow-lg shadow-green-500/20">
-                <Headphones className="w-7 h-7 md:w-8 md:h-8 text-white" />
+            <div className="flex items-center gap-4 md:gap-6">
+              <div className="relative w-16 h-16 md:w-20 md:h-20 shrink-0 rounded-2xl overflow-hidden shadow-[0_0_30px_rgba(255,255,255,0.1)] border border-white/10 group">
+                <Image src="/icon.png" alt="Stream Beats Logo" fill className="object-cover group-hover:scale-110 transition-transform duration-500" />
+                <div className="absolute inset-0 bg-gradient-to-tr from-black/40 to-transparent pointer-events-none" />
               </div>
               <div className="flex-1">
-                <h1 className="text-2xl md:text-3xl font-bold text-white leading-tight">Listen Together</h1>
-                <p className="text-sm md:text-base text-zinc-400 mt-1 line-clamp-1">Dengarkan musik bersama secara real-time</p>
+                <h1 className="text-3xl md:text-4xl font-extrabold text-transparent bg-clip-text bg-gradient-to-r from-white to-zinc-400 leading-tight tracking-tight">Listen Together</h1>
+                <p className="text-sm md:text-base text-zinc-400 mt-1.5 font-medium line-clamp-1">Dengarkan musik bersama secara real-time</p>
               </div>
             </div>
             
@@ -127,8 +128,8 @@ export default function PartyPage() {
               </div>
             ) : (
               <div className="text-center py-16 px-4 bg-zinc-800/20 rounded-3xl border border-white/5 border-dashed">
-                <div className="w-16 h-16 bg-zinc-800 rounded-2xl flex items-center justify-center mx-auto mb-5 rotate-12">
-                  <Headphones className="w-8 h-8 text-zinc-400 -rotate-12" />
+                <div className="relative w-24 h-24 rounded-3xl overflow-hidden mx-auto mb-6 shadow-2xl rotate-6 hover:rotate-0 transition-transform duration-500 border border-white/10">
+                  <Image src="/icon.png" alt="Logo" fill className="object-cover grayscale opacity-50 hover:grayscale-0 hover:opacity-100 transition-all duration-500" />
                 </div>
                 <h3 className="text-xl font-semibold text-white mb-2">Anda belum bergabung</h3>
                 <p className="text-zinc-400 max-w-sm mx-auto text-sm leading-relaxed">
