@@ -5,9 +5,11 @@ import { TopBar } from './TopBar';
 import { LeftSidebar } from './LeftSidebar';
 import { RightSidebar } from './RightSidebar';
 import { usePathname } from 'next/navigation';
+import { usePlayerStore } from '@/lib/store';
 
 export function DesktopLayout({ children }: { children: ReactNode }) {
   const pathname = usePathname();
+  const isRightSidebarOpen = usePlayerStore((state) => state.isRightSidebarOpen);
   
   // Hide desktop shell on auth and admin pages
   if (pathname.startsWith('/auth') || pathname.startsWith('/admin')) {
@@ -55,9 +57,11 @@ export function DesktopLayout({ children }: { children: ReactNode }) {
           </main>
 
           {/* Right Sidebar (Now Playing) */}
-          <div className="w-[320px] shrink-0 xl:w-[380px] hidden xl:flex flex-col min-h-0">
-            <RightSidebar />
-          </div>
+          {isRightSidebarOpen && (
+            <div className="w-[320px] shrink-0 xl:w-[380px] hidden xl:flex flex-col min-h-0">
+              <RightSidebar />
+            </div>
+          )}
           
         </div>
       </div>

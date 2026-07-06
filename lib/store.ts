@@ -21,6 +21,7 @@ interface PlayerState {
   queueIndex: number;
   isPlaying: boolean;
   isExpanded: boolean;
+  isRightSidebarOpen: boolean;
   volume: number;
   progress: number;
   duration: number;
@@ -42,6 +43,7 @@ interface PlayerState {
   togglePlay: () => void;
   setPlaying: (playing: boolean) => void;
   setExpanded: (expanded: boolean) => void;
+  toggleRightSidebar: () => void;
   setProgress: (progress: number) => void;
   setDuration: (duration: number) => void;
   setVolume: (volume: number) => void;
@@ -63,6 +65,7 @@ export const usePlayerStore = create<PlayerState>()(
       queueIndex: -1,
       isPlaying: false,
       isExpanded: false,
+      isRightSidebarOpen: true,
       volume: 100,
       progress: 0,
       duration: 0,
@@ -132,6 +135,7 @@ export const usePlayerStore = create<PlayerState>()(
           playContext: context,
           history: newHistory,
           playCounts: newPlayCounts,
+          isRightSidebarOpen: true,
         });
       },
 
@@ -280,6 +284,7 @@ export const usePlayerStore = create<PlayerState>()(
       togglePlay: () => set((state) => ({ isPlaying: !state.isPlaying })),
       setPlaying: (playing) => set({ isPlaying: playing }),
       setExpanded: (expanded) => set({ isExpanded: expanded }),
+      toggleRightSidebar: () => set((state) => ({ isRightSidebarOpen: !state.isRightSidebarOpen })),
       setProgress: (progress) => set({ progress }),
       setDuration: (duration) => set({ duration }),
       setVolume: (volume) => set({ volume }),

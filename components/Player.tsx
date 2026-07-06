@@ -8,7 +8,7 @@ import { Capacitor } from '@capacitor/core';
 import { PiPPlugin } from '@/lib/pip';
 import { BackgroundMode } from '@anuradev/capacitor-background-mode';
 import { motion, AnimatePresence } from 'motion/react';
-import { Play, Pause, SkipForward, SkipBack, Heart, ChevronDown, ListMusic, Mic2, Shuffle, Repeat, Repeat1, Maximize2, MoreVertical, ListPlus, User, Minimize2, MoreHorizontal, Volume2, Timer } from 'lucide-react';
+import { Play, Pause, SkipForward, SkipBack, Heart, ChevronDown, ListMusic, Mic2, Shuffle, Repeat, Repeat1, Maximize2, MoreVertical, ListPlus, User, Minimize2, MoreHorizontal, Volume2, Timer, PictureInPicture2, PanelRight } from 'lucide-react';
 import { cn, getHighResImage } from '@/lib/utils';
 import Image from 'next/image';
 import { useRouter, usePathname } from 'next/navigation';
@@ -43,6 +43,8 @@ export function Player() {
   const toggleRepeat = usePlayerStore((state) => state.toggleRepeat);
   const sleepTimer = usePlayerStore((state) => state.sleepTimer);
   const setSleepTimer = usePlayerStore((state) => state.setSleepTimer);
+  const isRightSidebarOpen = usePlayerStore((state) => state.isRightSidebarOpen);
+  const toggleRightSidebar = usePlayerStore((state) => state.toggleRightSidebar);
   const dataSaver = useSettingsStore((state) => state.dataSaver);
 
   const [isLiked, setIsLiked] = useState(false);
@@ -1031,9 +1033,33 @@ export function Player() {
           </div>
         </div>
 
-        {/* Right: Volume */}
-        <div className="flex items-center justify-end w-[30%] min-w-[180px] gap-3">
-          <div className="flex items-center gap-2 w-28 group">
+        {/* Right: Controls & Volume */}
+        <div className="flex items-center justify-end w-[30%] min-w-[180px] gap-4">
+          <button 
+            onClick={() => { setExpanded(true); setShowLyrics(true); }}
+            className={`transition ${showLyrics && isExpanded ? 'text-green-500 hover:text-green-400' : 'text-zinc-400 hover:text-white'}`}
+            title="Lirik"
+          >
+            <Mic2 className="w-4 h-4" />
+          </button>
+          
+          <button 
+            onClick={toggleRightSidebar}
+            className={`transition ${isRightSidebarOpen ? 'text-green-500 hover:text-green-400' : 'text-zinc-400 hover:text-white'}`}
+            title="Now Playing View"
+          >
+            <PanelRight className="w-4 h-4" />
+          </button>
+          
+          <button 
+            onClick={() => { setExpanded(true); setShowQueue(true); }}
+            className={`transition ${showQueue && isExpanded ? 'text-green-500 hover:text-green-400' : 'text-zinc-400 hover:text-white'}`}
+            title="Antrean"
+          >
+            <ListMusic className="w-4 h-4" />
+          </button>
+
+          <div className="flex items-center gap-2 w-24 group mr-2">
             <Volume2 className="w-4 h-4 text-zinc-400 shrink-0" />
             <input 
               type="range" 
@@ -1044,6 +1070,43 @@ export function Player() {
               className="w-full h-1 bg-zinc-600 rounded-full appearance-none [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:w-3 [&::-webkit-slider-thumb]:h-3 [&::-webkit-slider-thumb]:bg-white [&::-webkit-slider-thumb]:rounded-full cursor-pointer group-hover:[&::-webkit-slider-thumb]:block"
             />
           </div>
+
+          <button 
+            onClick={() => {
+              try {
+                if (document.pictureInPictureElement) {
+                  document.exitPictureInPicture();
+                } else {
+                  const video = document.querySelector('video');
+                  if (video) video.requestPictureInPicture().catch(() => alert('PiP diblokir oleh browser'));
+                }
+              } catch (err) {
+                alert('PiP tidak didukung di browser ini');
+              }
+            }}
+            className="text-zinc-400 hover:text-white transition"
+            title="Mini Player"
+          >
+            <PictureInPicture2 className="w-4 h-4" />
+          </button>
+
+          <button 
+            onClick={() => {
+              try {
+                if (!document.fullscreenElement) {
+                  document.documentElement.requestFullscreen().catch(() => alert('Fullscreen diblokir oleh browser'));
+                } else {
+                  document.exitFullscreen();
+                }
+              } catch (err) {
+                alert('Fullscreen tidak didukung di browser ini');
+              }
+            }}
+            className="text-zinc-400 hover:text-white transition"
+            title="Layar Penuh"
+          >
+            <Maximize2 className="w-4 h-4" />
+          </button>
         </div>
       </div>
 

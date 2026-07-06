@@ -1,6 +1,6 @@
 'use client';
 
-import { ChevronLeft, ChevronRight, Home, Search } from 'lucide-react';
+import { ChevronLeft, ChevronRight, Home, Search, Bell, Users } from 'lucide-react';
 import { useRouter, usePathname } from 'next/navigation';
 import { useAuthStore } from '@/lib/store';
 import Image from 'next/image';
@@ -60,8 +60,22 @@ export function TopBar() {
         </form>
       </div>
 
-      {/* Profile (Right) */}
+      {/* Profile & Extras (Right) */}
       <div className="flex items-center gap-4 shrink-0">
+        <button 
+          onClick={() => router.push('/party')}
+          className="w-8 h-8 flex items-center justify-center rounded-full hover:bg-zinc-800 text-zinc-400 hover:text-white transition-colors"
+          title="Dengar Bareng (Party)"
+        >
+          <Users className="w-5 h-5" />
+        </button>
+        <button 
+          className="w-8 h-8 flex items-center justify-center rounded-full hover:bg-zinc-800 text-zinc-400 hover:text-white transition-colors"
+          title="Notifikasi"
+        >
+          <Bell className="w-5 h-5" />
+        </button>
+
         <button 
           onClick={() => router.push('/settings')}
           className="w-8 h-8 rounded-full overflow-hidden bg-zinc-800 border-2 border-black hover:scale-105 transition-transform"
