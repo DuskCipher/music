@@ -1,6 +1,5 @@
 'use client';
 
-import { X, MoreHorizontal, PlusCircle } from 'lucide-react';
 import Image from 'next/image';
 import { usePlayerStore } from '@/lib/store';
 import { getHighResImage } from '@/lib/utils';
@@ -22,15 +21,7 @@ export function RightSidebar() {
     <div className="w-full h-full bg-zinc-900 rounded-lg flex flex-col overflow-y-auto overflow-x-hidden">
       {/* Header */}
       <div className="flex items-center justify-between p-4 sticky top-0 bg-zinc-900/90 backdrop-blur-md z-10">
-        <h2 className="font-bold text-base truncate pr-4">{artistName} Popular</h2>
-        <div className="flex items-center gap-2">
-          <button className="w-8 h-8 flex items-center justify-center rounded-full hover:bg-zinc-800 text-zinc-400 hover:text-white transition-colors">
-            <MoreHorizontal className="w-5 h-5" />
-          </button>
-          <button className="w-8 h-8 flex items-center justify-center rounded-full hover:bg-zinc-800 text-zinc-400 hover:text-white transition-colors">
-            <X className="w-5 h-5" />
-          </button>
-        </div>
+        <h2 className="font-bold text-base truncate pr-4">{currentTrack.name}</h2>
       </div>
 
       {/* Main Image */}
@@ -54,9 +45,6 @@ export function RightSidebar() {
               {artistName}
             </p>
           </div>
-          <button className="text-zinc-400 hover:text-white hover:scale-105 transition-all mt-1">
-            <PlusCircle className="w-6 h-6" />
-          </button>
         </div>
 
         {/* About the artist card */}

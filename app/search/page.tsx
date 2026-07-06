@@ -31,6 +31,16 @@ export default function Search() {
       setRecentSearches(searches);
     };
     loadRecentSearches();
+
+    // Handle search query from TopBar desktop
+    if (typeof window !== 'undefined') {
+      const params = new URLSearchParams(window.location.search);
+      const q = params.get('q');
+      if (q) {
+        setQuery(q);
+        handleSearch(q);
+      }
+    }
   }, []);
 
   useEffect(() => {
@@ -88,7 +98,7 @@ export default function Search() {
 
   return (
     <main className="min-h-screen pt-6 pb-24">
-      <div className="px-4 mb-4 flex items-center gap-3">
+      <div className="px-4 mb-4 flex items-center gap-3 lg:hidden">
         <button onClick={() => router.back()} className="text-white hover:bg-white/10 p-2 rounded-full transition-colors">
           <ArrowLeft className="w-6 h-6" />
         </button>

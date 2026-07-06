@@ -1031,15 +1031,9 @@ export function Player() {
           </div>
         </div>
 
-        {/* Right: Extras & Volume */}
+        {/* Right: Volume */}
         <div className="flex items-center justify-end w-[30%] min-w-[180px] gap-3">
-          <button className="text-zinc-400 hover:text-white transition">
-            <Mic2 className="w-4 h-4" />
-          </button>
-          <button className="text-zinc-400 hover:text-white transition">
-            <ListMusic className="w-4 h-4" />
-          </button>
-          <div className="flex items-center gap-2 w-24 group">
+          <div className="flex items-center gap-2 w-28 group">
             <Volume2 className="w-4 h-4 text-zinc-400 shrink-0" />
             <input 
               type="range" 
