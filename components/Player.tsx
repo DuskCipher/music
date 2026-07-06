@@ -975,7 +975,7 @@ export function Player() {
           </div>
           <div className="ml-3 flex flex-col justify-center min-w-0">
             <span className="text-white text-sm font-medium hover:underline cursor-pointer truncate">
-              {currentTrack.title}
+              {currentTrack.name}
             </span>
             <span className="text-zinc-400 text-xs hover:underline cursor-pointer truncate">
               {artistName}

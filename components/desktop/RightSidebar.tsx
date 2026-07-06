@@ -16,11 +16,13 @@ export function RightSidebar() {
     );
   }
 
+  const artistName = Array.isArray(currentTrack.artist) ? currentTrack.artist.map(a => a.name).join(', ') : currentTrack.artist?.name || 'Unknown Artist';
+
   return (
     <div className="w-full h-full bg-zinc-900 rounded-lg flex flex-col overflow-y-auto overflow-x-hidden">
       {/* Header */}
       <div className="flex items-center justify-between p-4 sticky top-0 bg-zinc-900/90 backdrop-blur-md z-10">
-        <h2 className="font-bold text-base truncate pr-4">{currentTrack.artist} Popular</h2>
+        <h2 className="font-bold text-base truncate pr-4">{artistName} Popular</h2>
         <div className="flex items-center gap-2">
           <button className="w-8 h-8 flex items-center justify-center rounded-full hover:bg-zinc-800 text-zinc-400 hover:text-white transition-colors">
             <MoreHorizontal className="w-5 h-5" />
@@ -35,8 +37,8 @@ export function RightSidebar() {
       <div className="px-4 pb-4">
         <div className="relative w-full aspect-square rounded-xl overflow-hidden shadow-2xl mb-4 group">
           <Image 
-            src={getHighResImage(currentTrack.thumbnail)} 
-            alt={currentTrack.title}
+            src={getHighResImage(currentTrack.thumbnails?.[currentTrack.thumbnails.length - 1]?.url)} 
+            alt={currentTrack.name}
             fill
             className="object-cover transition-transform duration-500 group-hover:scale-105"
           />
@@ -46,10 +48,10 @@ export function RightSidebar() {
         <div className="flex items-start justify-between gap-4 mb-6">
           <div className="min-w-0 flex-1">
             <h1 className="text-2xl font-bold text-white leading-tight mb-1 hover:underline cursor-pointer line-clamp-2">
-              {currentTrack.title}
+              {currentTrack.name}
             </h1>
             <p className="text-zinc-400 text-base hover:underline cursor-pointer truncate">
-              {currentTrack.artist}
+              {artistName}
             </p>
           </div>
           <button className="text-zinc-400 hover:text-white hover:scale-105 transition-all mt-1">
@@ -61,8 +63,8 @@ export function RightSidebar() {
         <div className="bg-zinc-800/50 rounded-xl overflow-hidden cursor-pointer group relative">
           <div className="relative w-full h-48">
             <Image 
-              src={`https://ui-avatars.com/api/?name=${encodeURIComponent(currentTrack.artist)}&background=random`}
-              alt={currentTrack.artist}
+              src={`https://ui-avatars.com/api/?name=${encodeURIComponent(artistName)}&background=random`}
+              alt={artistName}
               fill
               className="object-cover opacity-80 group-hover:opacity-100 transition-opacity"
             />
@@ -71,9 +73,9 @@ export function RightSidebar() {
               About the artist
             </div>
             <div className="absolute bottom-4 left-4 right-4">
-              <p className="font-bold text-lg text-white drop-shadow-md">{currentTrack.artist}</p>
+              <p className="font-bold text-lg text-white drop-shadow-md">{artistName}</p>
               <p className="text-zinc-300 text-sm drop-shadow-md line-clamp-2 mt-1">
-                Jelajahi lebih banyak musik dan album dari {currentTrack.artist}. Dengarkan lagu-lagu hits lainnya.
+                Jelajahi lebih banyak musik dan album dari {artistName}. Dengarkan lagu-lagu hits lainnya.
               </p>
             </div>
           </div>
