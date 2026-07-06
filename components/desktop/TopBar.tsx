@@ -4,7 +4,7 @@ import { ChevronLeft, ChevronRight, Home, Search, Bell, Users, Crown } from 'luc
 import { useRouter, usePathname } from 'next/navigation';
 import { useAuthStore } from '@/lib/store';
 import Image from 'next/image';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 
 export function TopBar() {
   const router = useRouter();
