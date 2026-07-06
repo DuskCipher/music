@@ -957,6 +957,7 @@ export function Player() {
               </div>
             </>
           )}
+        </div>
       )}
 
       {/* Desktop Player (Spotify style) */}
