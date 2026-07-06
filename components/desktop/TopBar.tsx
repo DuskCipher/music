@@ -11,6 +11,7 @@ export function TopBar() {
   const pathname = usePathname();
   const { user, isAuthenticated } = useAuthStore();
   const [searchQuery, setSearchQuery] = useState('');
+  const [showNotifications, setShowNotifications] = useState(false);
 
   const handleSearch = (e: React.FormEvent) => {
     e.preventDefault();
@@ -69,12 +70,36 @@ export function TopBar() {
         >
           <Users className="w-5 h-5" />
         </button>
-        <button 
-          className="w-8 h-8 flex items-center justify-center rounded-full hover:bg-zinc-800 text-zinc-400 hover:text-white transition-colors"
-          title="Notifikasi"
-        >
-          <Bell className="w-5 h-5" />
-        </button>
+        
+        {/* Notifications Dropdown */}
+        <div className="relative">
+          <button 
+            onClick={() => setShowNotifications(!showNotifications)}
+            className={`w-8 h-8 flex items-center justify-center rounded-full transition-colors ${showNotifications ? 'bg-zinc-800 text-white' : 'hover:bg-zinc-800 text-zinc-400 hover:text-white'}`}
+            title="Notifikasi"
+          >
+            <Bell className="w-5 h-5" />
+          </button>
+          
+          {showNotifications && (
+            <>
+              {/* Invisible overlay to close dropdown when clicking outside */}
+              <div 
+                className="fixed inset-0 z-40"
+                onClick={() => setShowNotifications(false)}
+              />
+              <div className="absolute right-0 mt-2 w-80 bg-zinc-900 border border-zinc-800 rounded-lg shadow-2xl z-50 overflow-hidden flex flex-col">
+                <div className="p-4 border-b border-zinc-800 flex items-center justify-between">
+                  <h3 className="font-bold text-white">Notifikasi</h3>
+                </div>
+                <div className="p-4 flex flex-col items-center justify-center min-h-[150px] text-zinc-500">
+                  <Bell className="w-8 h-8 mb-2 opacity-50" />
+                  <p className="text-sm">Belum ada notifikasi baru.</p>
+                </div>
+              </div>
+            </>
+          )}
+        </div>
 
         <button 
           onClick={() => router.push('/settings')}

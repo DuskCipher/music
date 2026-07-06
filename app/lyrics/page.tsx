@@ -78,7 +78,7 @@ export default function LyricsPage() {
   return (
     <div className="flex flex-col h-full w-full relative pt-8">
       <div 
-        className="flex-1 overflow-y-auto no-scrollbar pb-[10vh] px-4 md:px-12 lg:px-24"
+        className="relative flex-1 overflow-y-auto no-scrollbar pb-[10vh] px-4 md:px-12 lg:px-24"
         ref={lyricsContainerRef}
         style={{ 
           maskImage: "linear-gradient(to bottom, transparent 0%, black 15%, black 85%, transparent 100%)", 
@@ -100,7 +100,7 @@ export default function LyricsPage() {
                 <p 
                   key={i} 
                   className={cn(
-                    "lyric-line text-3xl md:text-5xl lg:text-6xl font-bold transition-all duration-300 ease-out break-words", 
+                    "lyric-line text-2xl md:text-3xl lg:text-4xl font-bold transition-all duration-300 ease-out break-words", 
                     lyricsType === 'synced' 
                       ? (isActive ? "text-white origin-left" : "text-white/30 hover:text-white/50 blur-[0.5px]")
                       : "text-white"

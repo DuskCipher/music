@@ -12,6 +12,7 @@ export function RightSidebar() {
 
   const [artistDetails, setArtistDetails] = useState<any>(null);
   const [isSubscribed, setIsSubscribed] = useState(false);
+  const [isDescExpanded, setIsDescExpanded] = useState(false);
 
   const artistName = currentTrack ? (Array.isArray(currentTrack.artist) ? currentTrack.artist.map(a => a.name).join(', ') : currentTrack.artist?.name || 'Unknown Artist') : '';
   const artistId = currentTrack ? (Array.isArray(currentTrack.artist) ? currentTrack.artist[0]?.artistId : currentTrack.artist?.artistId) : undefined;
@@ -142,9 +143,14 @@ export function RightSidebar() {
                 </button>
               </div>
               
-              <p className="text-zinc-300 text-sm line-clamp-3 mt-4">
-                Dengarkan karya-karya terbaik dari {artistDetails.name} di platform ini. Jelajahi berbagai lagu populer, album terbaru, single, dan video musik yang telah dirilis.
-              </p>
+              <div className="relative mt-4 group/desc cursor-pointer" onClick={() => setIsDescExpanded(!isDescExpanded)}>
+                <p className={`text-zinc-300 text-sm ${isDescExpanded ? '' : 'line-clamp-3'}`}>
+                  {artistDetails.description || `Dengarkan karya-karya terbaik dari ${artistDetails.name} di platform ini. Jelajahi berbagai lagu populer, album terbaru, single, dan video musik yang telah dirilis.`}
+                </p>
+                {!isDescExpanded && (
+                  <span className="text-white font-bold text-xs mt-1 hover:underline">Lihat semuanya</span>
+                )}
+              </div>
             </div>
           </div>
         )}
