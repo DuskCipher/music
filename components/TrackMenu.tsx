@@ -264,7 +264,6 @@ export function TrackMenu() {
                 <MenuItem icon={FileText} label="Lihat kredit lagu" onClick={handleCredits} />
                 <MenuItem icon={QrCode} label="Tampilkan Kode Music Kita semua" onClick={handleQRCode} />
               </div>
-                </div>
               </motion.div>
             </div>
           </>
