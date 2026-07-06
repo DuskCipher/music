@@ -2,7 +2,7 @@
 
 import { useEffect, useState, useMemo } from 'react';
 import { Track, usePlayerStore, useAuthStore } from '@/lib/store';
-import { History, Play, MoreVertical, ChevronRight, Sparkles, TrendingUp, Radio, Disc3, Bell } from 'lucide-react';
+import { History, Play, MoreVertical, ChevronRight, Sparkles, TrendingUp, Radio, Disc3, Bell, MessageCircle } from 'lucide-react';
 import Image from 'next/image';
 import { HorizontalScroll } from '@/components/HorizontalScroll';
 import { MixedScroll } from '@/components/MixedScroll';
@@ -252,6 +252,9 @@ export default function Home() {
             </div>
           </div>
           <div className="flex items-center gap-1">
+            <Link href="/messages" className="w-10 h-10 flex items-center justify-center rounded-full hover:bg-white/10 transition-colors text-white/70 hover:text-white">
+              <MessageCircle className="w-[22px] h-[22px]" />
+            </Link>
             <button onClick={() => setShowNotifications(true)} className="w-10 h-10 flex items-center justify-center rounded-full hover:bg-white/10 transition-colors text-white/70 hover:text-white relative">
               <Bell className="w-[22px] h-[22px]" />
               <span className="absolute top-2 right-2 w-2 h-2 bg-[#FA243C] rounded-full" />
