@@ -116,71 +116,45 @@ export function RightSidebar() {
                 src={getHighResImage(artistDetails.thumbnails?.[artistDetails.thumbnails.length - 1]?.url) || `https://ui-avatars.com/api/?name=${encodeURIComponent(artistName)}&background=random`}
                 alt={artistName}
                 fill
-                className="object-cover opacity-80 group-hover:opacity-100 transition-opacity"
-                className="object-cover transition-transform duration-500 group-hover:scale-105"
+                className="object-cover opacity-80 transition-all duration-500 group-hover:scale-105 group-hover:opacity-100"
               />
+              <div className="absolute inset-0 bg-gradient-to-t from-zinc-900 via-zinc-900/40 to-transparent" />
             </div>
 
-            {/* Title and Artist */}
-            <div className="flex items-start justify-between gap-4 mb-6">
-              <div className="min-w-0 flex-1">
-                <h1 className="text-2xl font-bold text-white leading-tight mb-1 hover:underline cursor-pointer line-clamp-2">
-                  {currentTrack.name}
-                </h1>
-                <p className="text-zinc-400 text-base hover:underline cursor-pointer truncate">
-                  {artistName}
+            {/* Artist Info Content */}
+            <div className="p-4 -mt-16 relative z-10">
+              <div className="flex items-center gap-1 text-white font-bold text-lg mb-1">
+                {artistDetails.name}
+                <BadgeCheck className="w-5 h-5 text-blue-400 fill-white" />
+              </div>
+              
+              <div className="flex items-center justify-between mt-2">
+                <p className="text-zinc-400 text-sm">
+                  {artistDetails.subscribers || "Mendengarkan"}
                 </p>
+                <button 
+                  onClick={handleSubscribe}
+                  className={`px-4 py-1.5 rounded-full border text-sm font-medium transition ${
+                    isSubscribed 
+                      ? 'bg-transparent text-white border-white/50 hover:border-white' 
+                      : 'bg-white text-black border-white hover:bg-zinc-200 hover:scale-105'
+                  }`}
+                >
+                  {isSubscribed ? 'Following' : 'Follow'}
+                </button>
+              </div>
+              
+              <div className="relative mt-4 group/desc cursor-pointer" onClick={() => setIsDescExpanded(!isDescExpanded)}>
+                <p className={`text-zinc-300 text-sm ${isDescExpanded ? '' : 'line-clamp-3'}`}>
+                  {artistDetails.description || `Dengarkan karya-karya terbaik dari ${artistDetails.name} di platform ini. Jelajahi berbagai lagu populer, album terbaru, single, dan video musik yang telah dirilis.`}
+                </p>
+                {!isDescExpanded && (
+                  <span className="text-white font-bold text-xs mt-1 hover:underline">Lihat semuanya</span>
+                )}
               </div>
             </div>
-
-            {/* About the artist card */}
-            {artistDetails && (
-              <div className="bg-zinc-800/50 rounded-xl overflow-hidden mb-4">
-                {/* Artist Cover Image */}
-                <div className="relative w-full h-48 cursor-pointer group">
-                  <Image 
-                    src={getHighResImage(artistDetails.thumbnails?.[artistDetails.thumbnails.length - 1]?.url) || `https://ui-avatars.com/api/?name=${encodeURIComponent(artistName)}&background=random`}
-                    alt={artistName}
-                    fill
-                    className="object-cover opacity-80 group-hover:opacity-100 transition-opacity"
-                  />
-                  <div className="absolute inset-0 bg-gradient-to-t from-zinc-900 via-zinc-900/40 to-transparent" />
-                </div>
-
-                {/* Artist Info Content */}
-                <div className="p-4 -mt-16 relative z-10">
-                  <div className="flex items-center gap-1 text-white font-bold text-lg mb-1">
-                    {artistDetails.name}
-                    <BadgeCheck className="w-5 h-5 text-blue-400 fill-white" />
-                  </div>
-                  
-                  <div className="flex items-center justify-between mt-2">
-                    <p className="text-zinc-400 text-sm">
-                      {artistDetails.subscribers || "Mendengarkan"}
-                    </p>
-                    <button 
-                      onClick={handleSubscribe}
-                      className={`px-4 py-1.5 rounded-full border text-sm font-medium transition ${
-                        isSubscribed 
-                          ? 'bg-transparent text-white border-white/50 hover:border-white' 
-                          : 'bg-white text-black border-white hover:bg-zinc-200 hover:scale-105'
-                      }`}
-                    >
-                      {isSubscribed ? 'Following' : 'Follow'}
-                    </button>
-                  </div>
-                  
-                  <div className="relative mt-4 group/desc cursor-pointer" onClick={() => setIsDescExpanded(!isDescExpanded)}>
-                    <p className={`text-zinc-300 text-sm ${isDescExpanded ? '' : 'line-clamp-3'}`}>
-                      {artistDetails.description || `Dengarkan karya-karya terbaik dari ${artistDetails.name} di platform ini. Jelajahi berbagai lagu populer, album terbaru, single, dan video musik yang telah dirilis.`}
-                    </p>
-                    {!isDescExpanded && (
-                      <span className="text-white font-bold text-xs mt-1 hover:underline">Lihat semuanya</span>
-                    )}
-                  </div>
-                </div>
-              </div>
-            )}
+          </div>
+        )}
 
             {/* Credits Section */}
             <div className="bg-zinc-800/50 rounded-xl p-4">
