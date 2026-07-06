@@ -14,7 +14,11 @@ import { useRouter } from 'next/navigation';
 import { ListenTogetherModal, ExcludeSongModal, SongCreditsModal, QRCodeModal } from './TrackMenuModals';
 
 export function TrackMenu() {
-  const { activeMenuTrack, setActiveMenuTrack, addToQueue, setTrackToAdd, setExpanded } = usePlayerStore();
+  const activeMenuTrack = usePlayerStore(state => state.activeMenuTrack);
+  const setActiveMenuTrack = usePlayerStore(state => state.setActiveMenuTrack);
+  const addToQueue = usePlayerStore(state => state.addToQueue);
+  const setTrackToAdd = usePlayerStore(state => state.setTrackToAdd);
+  const setExpanded = usePlayerStore(state => state.setExpanded);
   const [isLiked, setIsLiked] = useState(false);
   const router = useRouter();
 

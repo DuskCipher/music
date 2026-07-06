@@ -11,7 +11,12 @@ import { useRouter } from 'next/navigation';
 
 export function RightSidebar() {
   const router = useRouter();
-  const { currentTrack, toggleRightSidebar, rightSidebarMode, setRightSidebarMode, playTrack } = usePlayerStore();
+  const currentTrack = usePlayerStore(state => state.currentTrack);
+  const toggleRightSidebar = usePlayerStore(state => state.toggleRightSidebar);
+  const rightSidebarMode = usePlayerStore(state => state.rightSidebarMode);
+  const setRightSidebarMode = usePlayerStore(state => state.setRightSidebarMode);
+  const playTrack = usePlayerStore(state => state.playTrack);
+  const setActiveMenuTrack = usePlayerStore(state => state.setActiveMenuTrack);
 
   const [artistDetails, setArtistDetails] = useState<any>(null);
   const [isSubscribed, setIsSubscribed] = useState(false);
@@ -91,7 +96,10 @@ export function RightSidebar() {
           </h2>
         )}
         <div className="flex items-center gap-3 text-zinc-400">
-          <button className="hover:text-white transition">
+          <button 
+            className="hover:text-white transition"
+            onClick={() => currentTrack && setActiveMenuTrack(currentTrack)}
+          >
             <MoreHorizontal className="w-5 h-5" />
           </button>
           <button 
