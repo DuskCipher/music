@@ -3,9 +3,11 @@
 import { ArrowLeft, ChevronRight, Plus, Smile, Info } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import Image from 'next/image';
-import { useState, useRef, useEffect } from 'react';
+import { useState, useRef, useEffect, use } from 'react';
 
-export default function ChatRoom({ params }: { params: { id: string } }) {
+export default function ChatRoom({ params }: { params: Promise<{ id: string }> }) {
+  const resolvedParams = use(params);
+  const id = resolvedParams.id;
   const router = useRouter();
   const [messages, setMessages] = useState([
     { id: 1, text: 'anjaayy', sender: 'me', time: '10 Jun' }
@@ -13,10 +15,10 @@ export default function ChatRoom({ params }: { params: { id: string } }) {
   const [newMessage, setNewMessage] = useState('');
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
-  // In a real app, you would fetch user details based on params.id
+  // In a real app, you would fetch user details based on id
   const user = {
-    name: params.id === 'group1' ? 'Ir, Rafifebrian' : params.id === 'le-alive' ? 'le(alive)' : 'Rafifebrian',
-    avatar: params.id === 'le-alive' 
+    name: id === 'group1' ? 'Ir, Rafifebrian' : id === 'le-alive' ? 'le(alive)' : 'Rafifebrian',
+    avatar: id === 'le-alive' 
       ? '/api/placeholder/120/120?text=L&bg=4a6b82&textColor=ffffff'
       : '/api/placeholder/120/120?text=R&bg=a88bbd&textColor=ffffff'
   };
