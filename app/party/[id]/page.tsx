@@ -18,7 +18,7 @@ export default function PartyPage() {
 
   useEffect(() => {
     if (!user) {
-      router.push('/login?redirect=/party/' + roomId);
+      router.push('/auth?redirect=/party/' + roomId);
     }
   }, [user, router, roomId]);
 
