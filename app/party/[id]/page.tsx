@@ -15,12 +15,17 @@ export default function PartyPage() {
   const { roomId: currentRoomId, isHost, members, setParty, leaveParty } = usePartyStore();
   
   const [copied, setCopied] = useState(false);
+  const [isMounted, setIsMounted] = useState(false);
 
   useEffect(() => {
-    if (!user) {
+    setIsMounted(true);
+  }, []);
+
+  useEffect(() => {
+    if (isMounted && !user) {
       router.push('/auth?redirect=/party/' + roomId);
     }
-  }, [user, router, roomId]);
+  }, [user, router, roomId, isMounted]);
 
   const handleJoin = () => {
     setParty(roomId, false);
@@ -37,7 +42,7 @@ export default function PartyPage() {
     setTimeout(() => setCopied(false), 2000);
   };
 
-  if (!user) return null;
+  if (!isMounted || !user) return null;
 
   return (
     <div className="flex-1 overflow-y-auto pb-32">
