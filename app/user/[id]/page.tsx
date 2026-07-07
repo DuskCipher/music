@@ -56,13 +56,13 @@ export default async function PublicProfile({ params }: { params: Promise<{ id: 
           {profile?.avatar_url ? (
             <Image
               src={profile.avatar_url}
-              alt={profile?.full_name || 'Pengguna'}
+              alt={profile?.name || 'Pengguna'}
               fill
               className="rounded-full object-cover border-4 border-white/10"
             />
           ) : (
             <div className="w-full h-full rounded-full bg-[#282828] border-4 border-white/10 flex items-center justify-center">
-              <span className="text-white text-4xl font-bold">{profile?.full_name?.charAt(0).toUpperCase() || 'U'}</span>
+              <span className="text-white text-4xl font-bold">{profile?.name?.charAt(0).toUpperCase() || 'U'}</span>
             </div>
           )}
         </div>
@@ -70,7 +70,7 @@ export default async function PublicProfile({ params }: { params: Promise<{ id: 
         {/* Info */}
         <div>
           <h1 className="text-3xl font-bold text-white flex items-center justify-center gap-2">
-            {profile?.full_name || 'Pengguna'}
+            {profile?.name || 'Pengguna'}
           </h1>
           
           {/* Stats */}
