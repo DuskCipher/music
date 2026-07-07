@@ -6,7 +6,7 @@ import Image from 'next/image';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useAuthStore, User } from '@/lib/store';
-import { Plus, History, Settings, Bell, X, UserPlus, Share2, Edit, Check, Crown, Headphones } from 'lucide-react';
+import { Plus, History, Settings, Bell, X, UserPlus, Share2, Edit, Check, Crown, Headphones, Trophy } from 'lucide-react';
 import { createClient } from '@/lib/supabase/client';
 import { NotificationsModal, ActivityModal, ShareModal, MessagesModal } from './SocialModals';
 
@@ -204,6 +204,14 @@ export function Sidebar({ isOpen, onClose }: SidebarProps) {
                   <Bell className="w-6 h-6 text-white/70" />
                   <span className="text-base font-medium flex-1">Info Terkini</span>
                   <span className="text-[#3B82F6] text-xs font-semibold">Baru</span>
+                </button>
+
+                <button 
+                  onClick={() => { onClose(); router.push('/leaderboard'); }}
+                  className="flex items-center gap-4 px-5 py-3 text-white/90 hover:text-white hover:bg-white/5 transition-colors text-left w-full"
+                >
+                  <Trophy className="w-6 h-6 text-white/70" />
+                  <span className="text-base font-medium">Top Pendengar</span>
                 </button>
 
                 <button 

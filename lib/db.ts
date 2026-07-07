@@ -451,7 +451,7 @@ export const db = {
   async getMessages(roomId: string) {
     const { data, error } = await supabase
       .from('messages')
-      .select('id, text, sender_id, created_at')
+      .select('id, text, sender_id, created_at, message_reactions(emoji, user_id)')
       .eq('room_id', roomId)
       .order('created_at', { ascending: true });
 
@@ -472,6 +472,30 @@ export const db = {
 
     if (error) { console.error(error); return null; }
     return data;
+  },
+
+  async toggleMessageReaction(messageId: string, emoji: string) {
+    const userId = await getUserId();
+    if (!userId) return;
+
+    // Check if exists
+    const { data } = await supabase
+      .from('message_reactions')
+      .select('id')
+      .eq('message_id', messageId)
+      .eq('user_id', userId)
+      .eq('emoji', emoji)
+      .maybeSingle();
+
+    if (data) {
+      await supabase.from('message_reactions').delete().eq('id', data.id);
+    } else {
+      await supabase.from('message_reactions').insert({
+        message_id: messageId,
+        user_id: userId,
+        emoji
+      });
+    }
   },
 
   /** Ambil info anggota sebuah room (profil pengguna lain) */
@@ -559,5 +583,49 @@ export const db = {
     const members = [userId, ...memberIds].map(id => ({ room_id: room.id, user_id: id }));
     await supabase.from('chat_members').insert(members);
     return room.id;
+  },
+
+  // STORIES
+  async getStories() {
+    const userId = await getUserId();
+    if (!userId) return [];
+    
+    const twentyFourHoursAgo = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString();
+    const { data, error } = await supabase
+      .from('stories')
+      .select('id, user_id, track_data, caption, created_at, profiles(name, avatar_url)')
+      .gte('created_at', twentyFourHoursAgo)
+      .order('created_at', { ascending: false });
+      
+    if (error) {
+      console.error(error);
+      return [];
+    }
+    return data || [];
+  },
+  
+  async addStory(track_data: any, caption: string = '') {
+    const userId = await getUserId();
+    if (!userId) return;
+    
+    await supabase.from('stories').insert({
+      user_id: userId,
+      track_data,
+      caption
+    });
+  },
+
+  // LEADERBOARD
+  async getLeaderboard() {
+    const { data, error } = await supabase
+      .from('leaderboard_view')
+      .select('*')
+      .limit(10);
+      
+    if (error) {
+      console.error(error);
+      return [];
+    }
+    return data || [];
   }
 };

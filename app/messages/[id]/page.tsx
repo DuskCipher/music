@@ -8,12 +8,15 @@ import { db } from '@/lib/db';
 import { useAuthStore, usePlayerStore } from '@/lib/store';
 import { createClient } from '@/lib/supabase/client';
 import ShareSongModal from '@/components/ShareSongModal';
+import StickerPicker from '@/components/StickerPicker';
+import MessageContextMenu from '@/components/MessageContextMenu';
 
 interface Message {
   id: string;
   text: string;
   sender_id: string;
   created_at: string;
+  message_reactions?: { emoji: string; user_id: string }[];
 }
 
 interface OtherUser {
@@ -47,6 +50,8 @@ export default function ChatRoom({ params }: { params: Promise<{ id: string }> }
   const [sending, setSending] = useState(false);
   const [showGroupModal, setShowGroupModal] = useState(false);
   const [showShareModal, setShowShareModal] = useState(false);
+  const [showStickerPicker, setShowStickerPicker] = useState(false);
+  const [activeMessageId, setActiveMessageId] = useState<string | null>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
   // Player action
@@ -80,10 +85,15 @@ export default function ChatRoom({ params }: { params: Promise<{ id: string }> }
       .subscribe();
 
     return () => {
-      supabase.removeChannel(channel);
+      channel.unsubscribe();
     };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [roomId, user]);
+
+  const handleReact = async (messageId: string, emoji: string) => {
+    await db.toggleMessageReaction(messageId, emoji);
+    // Reload messages to get updated reactions
+    loadMessages();
+  };
 
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
@@ -229,10 +239,11 @@ export default function ChatRoom({ params }: { params: Promise<{ id: string }> }
             const prevMsg = messages[i - 1];
             const showTime = !prevMsg || formatTime(msg.created_at) !== formatTime(prevMsg.created_at);
 
-            const isSong = msg.text.startsWith('$$SONG::');
             let songData = null;
+            let stickerUrl = null;
             let displayText = msg.text;
-            if (isSong) {
+
+            if (msg.text.startsWith('$$SONG::')) {
               const parts = msg.text.split('::');
               if (parts.length >= 5) {
                 songData = {
@@ -244,18 +255,30 @@ export default function ChatRoom({ params }: { params: Promise<{ id: string }> }
               } else {
                 displayText = 'Lagu (Tidak Tersedia)';
               }
+            } else if (msg.text.startsWith('$$STICKER::')) {
+              const parts = msg.text.split('::');
+              if (parts.length >= 2) {
+                stickerUrl = parts[1];
+              }
             }
 
             return (
-              <div key={msg.id}>
+              <div key={msg.id} className="group/message">
                 {showTime && i > 0 && (
                   <div className="text-center my-3">
                     <span className="text-zinc-600 text-[10px]">{formatTime(msg.created_at)}</span>
                   </div>
                 )}
-                <div className={`flex ${isMe ? 'justify-end' : 'justify-start'}`}>
-                  {songData ? (
-                    <div 
+                <div className={`flex flex-col ${isMe ? 'items-end' : 'items-start'}`}>
+                  <div 
+                    className={`flex ${isMe ? 'justify-end' : 'justify-start'} w-full`}
+                    onContextMenu={(e) => {
+                      e.preventDefault();
+                      setActiveMessageId(msg.id);
+                    }}
+                  >
+                    {songData ? (
+                      <div 
                       onClick={() => {
                         const track = {
                           videoId: songData.videoId,
@@ -286,6 +309,10 @@ export default function ChatRoom({ params }: { params: Promise<{ id: string }> }
                         <Play className="w-4 h-4 ml-0.5" />
                       </div>
                     </div>
+                  ) : stickerUrl ? (
+                    <div className="relative w-32 h-32 md:w-40 md:h-40">
+                      <Image src={stickerUrl} alt="Sticker" fill className="object-contain" unoptimized />
+                    </div>
                   ) : (
                     <div className={`max-w-[75%] rounded-2xl px-4 py-2.5 ${
                       isMe
@@ -293,6 +320,24 @@ export default function ChatRoom({ params }: { params: Promise<{ id: string }> }
                         : 'bg-[#282828] text-white rounded-bl-sm'
                     }`}>
                       <p className="text-[15px] leading-relaxed">{displayText}</p>
+                    </div>
+                  )}
+                  </div>
+                  
+                  {/* Reactions */}
+                  {msg.message_reactions && msg.message_reactions.length > 0 && (
+                    <div className={`flex flex-wrap gap-1 mt-1 ${isMe ? 'justify-end' : 'justify-start'}`}>
+                      {Object.entries(
+                        msg.message_reactions.reduce((acc, curr) => {
+                          acc[curr.emoji] = (acc[curr.emoji] || 0) + 1;
+                          return acc;
+                        }, {} as Record<string, number>)
+                      ).map(([emoji, count]) => (
+                        <div key={emoji} className="bg-[#282828] border border-white/10 rounded-full px-2 py-0.5 text-[11px] flex items-center gap-1 cursor-pointer" onClick={() => handleReact(msg.id, emoji)}>
+                          <span>{emoji}</span>
+                          <span className="text-zinc-400">{count}</span>
+                        </div>
+                      ))}
                     </div>
                   )}
                 </div>
@@ -322,7 +367,11 @@ export default function ChatRoom({ params }: { params: Promise<{ id: string }> }
             >
               <Plus className="w-5 h-5" />
             </button>
-            <button type="button" className="text-zinc-500 hover:text-white transition p-2">
+            <button 
+              type="button" 
+              onClick={() => setShowStickerPicker(!showStickerPicker)}
+              className={`transition p-2 ${showStickerPicker ? 'text-[#1DB954]' : 'text-zinc-500 hover:text-white'}`}
+            >
               <Smile className="w-5 h-5" />
             </button>
           </div>
@@ -364,6 +413,32 @@ export default function ChatRoom({ params }: { params: Promise<{ id: string }> }
             });
           }, 0);
         }}
+      />
+      
+      <StickerPicker
+        isOpen={showStickerPicker}
+        onClose={() => setShowStickerPicker(false)}
+        onSelectSticker={(url) => {
+          setShowStickerPicker(false);
+          const text = `$$STICKER::${url}`;
+          
+          setTimeout(() => {
+            setSending(true);
+            const tempId = `temp-${Date.now()}`;
+            setMessages(prev => [...prev, { id: tempId, text, sender_id: user?.id || '', created_at: new Date().toISOString() }]);
+            db.sendMessage(roomId, text).then(sent => {
+              if (sent) setMessages(prev => prev.map(m => m.id === tempId ? sent as Message : m));
+              setSending(false);
+            });
+          }, 0);
+        }}
+      />
+
+      <MessageContextMenu
+        isOpen={!!activeMessageId}
+        onClose={() => setActiveMessageId(null)}
+        messageId={activeMessageId || ''}
+        onReact={handleReact}
       />
 
       {/* Group Details Modal */}

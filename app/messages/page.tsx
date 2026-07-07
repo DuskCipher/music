@@ -7,6 +7,7 @@ import Link from 'next/link';
 import { useEffect, useState, useRef } from 'react';
 import UserSelectionModal from '@/components/UserSelectionModal';
 import ChatContextMenu from '@/components/ChatContextMenu';
+import StoriesList from '@/components/StoriesList';
 import { db } from '@/lib/db';
 import { useAuthStore } from '@/lib/store';
 import { createClient } from '@/lib/supabase/client';
@@ -172,7 +173,11 @@ export default function Messages() {
         </button>
       </div>
 
-      <div className="px-4 mt-2">
+      <div className="pt-20 px-4 mb-2">
+        <StoriesList />
+      </div>
+
+      <div className="flex-1 overflow-y-auto px-4 pb-20 md:pb-6">
         {/* Create Group Action */}
         <div 
           onClick={() => { setIsGroupMode(true); setModalOpen(true); }}
