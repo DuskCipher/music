@@ -16,7 +16,7 @@ export default function RegisterPage() {
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [success, setSuccess] = useState(false);
+  const [success, setSuccess] = useState<string | null>(null);
 
   const handleRegister = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -38,7 +38,18 @@ export default function RegisterPage() {
         throw signUpError;
       }
 
-      setSuccess(true);
+      // Supabase by default requires email confirmation.
+      // If session is null, it means email confirmation is required.
+      if (!data.session) {
+        setSuccess("Pendaftaran berhasil! Silakan periksa kotak masuk atau folder Spam email Anda untuk link verifikasi.");
+        // Redirect to login page instead of home so they know they need to login later
+        setTimeout(() => {
+          router.push('/auth/login');
+        }, 4000);
+        return;
+      }
+
+      setSuccess("Pendaftaran berhasil! Mengalihkan...");
       // Full page reload so AuthProvider picks up the new session
       setTimeout(() => {
         window.location.href = '/';
@@ -71,8 +82,8 @@ export default function RegisterPage() {
         )}
 
         {success ? (
-          <div className="bg-green-500/10 border border-green-500/20 text-green-400 p-4 rounded-xl mb-6 text-center">
-            Pendaftaran berhasil! Mengalihkan ke profil...
+          <div className="bg-green-500/10 border border-green-500/20 text-green-400 p-4 rounded-xl mb-6 text-center text-sm leading-relaxed">
+            {success}
           </div>
         ) : (
           <form onSubmit={handleRegister} className="space-y-4">

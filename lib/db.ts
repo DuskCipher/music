@@ -52,7 +52,10 @@ export const db = {
   },
   async addPlaylist(playlist: { id: string; name: string; img: string; tracks: Track[] }) {
     const userId = await getUserId();
-    if (!userId) return;
+    if (!userId) {
+      alert("Gagal membuat playlist: Anda harus login terlebih dahulu.");
+      return;
+    }
     
     // Check if updating or inserting
     const { data: existing } = await supabase.from('playlists').select('id').eq('id', playlist.id).eq('user_id', userId).maybeSingle();
@@ -66,7 +69,10 @@ export const db = {
       error = res.error;
     }
     
-    if (error) console.error(error);
+    if (error) {
+      console.error(error);
+      alert("Terjadi kesalahan pada database: " + error.message);
+    }
     if (typeof window !== 'undefined') window.dispatchEvent(new CustomEvent('playlistsUpdated'));
   },
   async getPlaylist(id: string) {
