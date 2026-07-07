@@ -1,4 +1,4 @@
-﻿-- ====================================================================
+-- ====================================================================
 -- DATABASE SCHEMA LENGKAP - APLIKASI MUSIK (MUSIKUZYY)
 -- Salin semua isi file ini dan jalankan di SQL Editor Supabase.
 -- URL: https://supabase.com/dashboard -> pilih project -> SQL Editor
@@ -157,6 +157,13 @@ CREATE TABLE IF NOT EXISTS public.messages (
   created_at timestamp with time zone DEFAULT now()
 );
 
+CREATE TABLE IF NOT EXISTS public.blocks (
+  blocker_id uuid REFERENCES auth.users(id) ON DELETE CASCADE,
+  blocked_id uuid REFERENCES auth.users(id) ON DELETE CASCADE,
+  created_at timestamp with time zone DEFAULT now(),
+  PRIMARY KEY (blocker_id, blocked_id)
+);
+
 -- ============================================================
 -- BAGIAN 6: INDEX
 -- ============================================================
@@ -173,6 +180,7 @@ CREATE INDEX IF NOT EXISTS idx_notifications_user_id      ON public.notification
 CREATE INDEX IF NOT EXISTS idx_chat_members_user_id       ON public.chat_members(user_id);
 CREATE INDEX IF NOT EXISTS idx_messages_room_id           ON public.messages(room_id);
 CREATE INDEX IF NOT EXISTS idx_messages_created_at        ON public.messages(created_at ASC);
+CREATE INDEX IF NOT EXISTS idx_blocks_blocker_id          ON public.blocks(blocker_id);
 
 -- ============================================================
 -- BAGIAN 7: MENGAKTIFKAN ROW LEVEL SECURITY (RLS)
@@ -191,6 +199,7 @@ ALTER TABLE public.global_notifications ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.chat_rooms           ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.chat_members         ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.messages             ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.blocks               ENABLE ROW LEVEL SECURITY;
 
 -- ============================================================
 -- BAGIAN 8: POLICIES (Aturan Akses Data)
@@ -251,6 +260,15 @@ CREATE POLICY "Follows are viewable by everyone"
 DROP POLICY IF EXISTS "Users can manage their own follows" ON public.follows;
 CREATE POLICY "Users can manage their own follows"
   ON public.follows FOR ALL USING (auth.uid() = follower_id);
+
+-- BLOCKS
+DROP POLICY IF EXISTS "Blocks are viewable by everyone" ON public.blocks;
+CREATE POLICY "Blocks are viewable by everyone"
+  ON public.blocks FOR SELECT USING (true);
+
+DROP POLICY IF EXISTS "Users can manage their own blocks" ON public.blocks;
+CREATE POLICY "Users can manage their own blocks"
+  ON public.blocks FOR ALL USING (auth.uid() = blocker_id);
 
 -- NOTIFICATIONS
 DROP POLICY IF EXISTS "Users can view their own notifications" ON public.notifications;

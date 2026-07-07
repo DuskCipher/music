@@ -4,7 +4,9 @@ import { ArrowLeft, Edit, Users, MessageCircle } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import Image from 'next/image';
 import Link from 'next/link';
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useRef } from 'react';
+import UserSelectionModal from '@/components/UserSelectionModal';
+import ChatContextMenu from '@/components/ChatContextMenu';
 import { db } from '@/lib/db';
 import { useAuthStore } from '@/lib/store';
 import { createClient } from '@/lib/supabase/client';
@@ -22,6 +24,7 @@ interface ChatRoom {
   displayAvatar?: string | null;
   lastMessage?: string;
   lastDate?: string;
+  otherUserId?: string | null;
 }
 
 function formatDate(isoDate: string) {
@@ -39,6 +42,39 @@ export default function Messages() {
   const [rooms, setRooms] = useState<ChatRoom[]>([]);
   const [loading, setLoading] = useState(true);
   const supabase = createClient();
+  
+  // Modals state
+  const [modalOpen, setModalOpen] = useState(false);
+  const [isGroupMode, setIsGroupMode] = useState(false);
+  const [contextMenuUser, setContextMenuUser] = useState<any>(null);
+  const pressTimer = useRef<NodeJS.Timeout | null>(null);
+
+  const handleTouchStart = (e: React.TouchEvent | React.MouseEvent, room: ChatRoom) => {
+    if (room.is_group || !room.otherUserId) return;
+    pressTimer.current = setTimeout(() => {
+      setContextMenuUser({
+        id: room.otherUserId,
+        name: room.displayName,
+        avatar_url: room.displayAvatar
+      });
+    }, 600);
+  };
+
+  const handleTouchEnd = () => {
+    if (pressTimer.current) clearTimeout(pressTimer.current);
+  };
+
+  const handleCreateDirect = async (userId: string) => {
+    setModalOpen(false);
+    const roomId = await db.createDirectChat(userId);
+    if (roomId) router.push(`/messages/${roomId}`);
+  };
+
+  const handleCreateGroup = async (name: string, userIds: string[]) => {
+    setModalOpen(false);
+    const roomId = await db.createGroupChat(name, userIds);
+    if (roomId) router.push(`/messages/${roomId}`);
+  };
 
   useEffect(() => {
     if (!isAuthenticated) {
@@ -87,6 +123,7 @@ export default function Messages() {
         ...room,
         displayName,
         displayAvatar,
+        otherUserId: otherMemberIds.length > 0 ? otherMemberIds[0] : null,
         lastMessage: lastMsg?.text || 'Mulai obrolan',
         lastDate: lastMsg ? formatDate(lastMsg.created_at) : '',
       };
@@ -127,14 +164,20 @@ export default function Messages() {
           <ArrowLeft className="w-6 h-6" />
         </button>
         <h1 className="text-white font-bold text-base">Pesan</h1>
-        <button className="text-white hover:opacity-70 transition">
+        <button 
+          onClick={() => { setIsGroupMode(false); setModalOpen(true); }}
+          className="text-white hover:opacity-70 transition"
+        >
           <Edit className="w-6 h-6" />
         </button>
       </div>
 
       <div className="px-4 mt-2">
         {/* Create Group Action */}
-        <div className="flex items-center gap-4 py-3 cursor-pointer hover:bg-white/5 transition rounded-lg">
+        <div 
+          onClick={() => { setIsGroupMode(true); setModalOpen(true); }}
+          className="flex items-center gap-4 py-3 cursor-pointer hover:bg-white/5 transition rounded-lg"
+        >
           <div className="w-14 h-14 rounded-full bg-[#282828] flex items-center justify-center shrink-0">
             <Users className="w-6 h-6 text-white" />
           </div>
@@ -163,12 +206,22 @@ export default function Messages() {
         ) : (
           <div className="mt-2 space-y-1">
             {rooms.map((room) => (
-              <Link
-                href={`/messages/${room.id}`}
+              <div
                 key={room.id}
+                onTouchStart={(e) => handleTouchStart(e, room)}
+                onTouchEnd={handleTouchEnd}
+                onTouchMove={handleTouchEnd}
+                onMouseDown={(e) => handleTouchStart(e, room)}
+                onMouseUp={handleTouchEnd}
+                onMouseLeave={handleTouchEnd}
+                onClick={(e) => {
+                  // Prevent navigation if context menu is already open
+                  if (contextMenuUser) e.preventDefault();
+                  else router.push(`/messages/${room.id}`);
+                }}
                 className="flex items-center gap-4 py-3 cursor-pointer hover:bg-white/5 transition rounded-lg"
               >
-                <div className="relative w-14 h-14 shrink-0 rounded-full overflow-hidden bg-[#282828] flex items-center justify-center">
+                <div className="relative w-14 h-14 shrink-0 rounded-full overflow-hidden bg-[#282828] flex items-center justify-center pointer-events-none">
                   {room.displayAvatar ? (
                     <Image src={room.displayAvatar} alt={room.displayName || ''} fill className="object-cover" />
                   ) : (
@@ -185,13 +238,36 @@ export default function Messages() {
                       <span className="text-zinc-500 text-xs shrink-0 ml-2">{room.lastDate}</span>
                     )}
                   </div>
-                  <p className="text-zinc-400 text-sm truncate mt-0.5">{room.lastMessage}</p>
+                  <p className="text-zinc-400 text-sm truncate mt-0.5 pointer-events-none">{room.lastMessage}</p>
                 </div>
-              </Link>
+              </div>
             ))}
           </div>
         )}
       </div>
+
+      <UserSelectionModal 
+        isOpen={modalOpen} 
+        onClose={() => setModalOpen(false)} 
+        isGroup={isGroupMode}
+        onSelectUser={handleCreateDirect}
+        onCreateGroup={handleCreateGroup}
+      />
+      
+      <ChatContextMenu
+        isOpen={!!contextMenuUser}
+        onClose={() => setContextMenuUser(null)}
+        user={contextMenuUser}
+        onViewProfile={(id) => router.push(`/profile/${id}`)}
+        onUnfollow={async (id) => {
+          await db.unfollowUser(id);
+          alert('Berhasil berhenti mengikuti.');
+        }}
+        onBlock={async (id) => {
+          await db.blockUser(id);
+          alert('Pengguna berhasil diblokir.');
+        }}
+      />
     </div>
   );
 }

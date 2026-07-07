@@ -486,4 +486,86 @@ export const db = {
     // Kembalikan semua user_id kecuali diri sendiri
     return (data || []).map(m => m.user_id).filter(id => id !== userId);
   },
+
+  // SOCIAL & CHAT
+  async unfollowUser(userIdToUnfollow: string) {
+    const userId = await getUserId();
+    if (!userId) return false;
+    const { error } = await supabase.from('follows').delete().eq('follower_id', userId).eq('following_id', userIdToUnfollow);
+    if (error) return false;
+    return true;
+  },
+
+  async blockUser(userIdToBlock: string) {
+    const userId = await getUserId();
+    if (!userId) return false;
+    const { error } = await supabase.from('blocks').insert({ blocker_id: userId, blocked_id: userIdToBlock });
+    if (error) return false;
+    // Remove follows
+    await supabase.from('follows').delete().eq('follower_id', userId).eq('following_id', userIdToBlock);
+    await supabase.from('follows').delete().eq('follower_id', userIdToBlock).eq('following_id', userId);
+    return true;
+  },
+
+  async searchUsers(query: string) {
+    const userId = await getUserId();
+    if (!userId) return [];
+    const { data, error } = await supabase
+      .from('profiles')
+      .select('id, name, avatar_url')
+      .ilike('name', `%${query}%`)
+      .neq('id', userId)
+      .limit(20);
+    if (error) return [];
+    return data || [];
+  },
+
+  async createDirectChat(otherUserId: string) {
+    const userId = await getUserId();
+    if (!userId) return null;
+
+    // First check if room already exists
+    // Since we don't have a reliable RPC, we check manually
+    const { data: myRooms } = await supabase.from('chat_members').select('room_id').eq('user_id', userId);
+    if (myRooms && myRooms.length > 0) {
+      const roomIds = myRooms.map(r => r.room_id);
+      const { data: commonRooms } = await supabase.from('chat_members')
+        .select('room_id')
+        .eq('user_id', otherUserId)
+        .in('room_id', roomIds);
+      
+      if (commonRooms && commonRooms.length > 0) {
+        // Find one that is NOT a group
+        const { data: directRoom } = await supabase.from('chat_rooms')
+          .select('id')
+          .in('id', commonRooms.map(r => r.room_id))
+          .eq('is_group', false)
+          .maybeSingle();
+        
+        if (directRoom) return directRoom.id;
+      }
+    }
+
+    // Create new room
+    const { data: room, error: roomError } = await supabase.from('chat_rooms').insert({ is_group: false }).select().single();
+    if (roomError || !room) return null;
+
+    await supabase.from('chat_members').insert([
+      { room_id: room.id, user_id: userId },
+      { room_id: room.id, user_id: otherUserId }
+    ]);
+    return room.id;
+  },
+
+  async createGroupChat(name: string, memberIds: string[]) {
+    const userId = await getUserId();
+    if (!userId) return null;
+
+    const { data: room, error: roomError } = await supabase.from('chat_rooms').insert({ is_group: true, name }).select().single();
+    if (roomError || !room) return null;
+
+    const members = [userId, ...memberIds].map(id => ({ room_id: room.id, user_id: id }));
+    await supabase.from('chat_members').insert(members);
+    return room.id;
+  }
 };
