@@ -65,9 +65,8 @@ export function SpotifyImportModal({ isOpen, onClose }: SpotifyImportModalProps)
             const match = searchData[0];
             matchedTracks.push({
               videoId: match.videoId,
-              title: match.name || match.title,
-              artist: match.artist?.name || match.artist || 'Unknown Artist',
-              album: match.album?.name || match.album || '',
+              name: match.name || match.title,
+              artist: [{ name: match.artist?.name || (typeof match.artist === 'string' ? match.artist : 'Unknown Artist') }],
               duration: match.duration,
               thumbnails: match.thumbnails || [],
             });
