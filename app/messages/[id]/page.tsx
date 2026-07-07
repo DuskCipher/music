@@ -185,7 +185,7 @@ export default function ChatRoom({ params }: { params: Promise<{ id: string }> }
       </div>
 
       {/* Messages */}
-      <div className="flex-1 overflow-y-auto px-4 py-6 pb-[140px]">
+      <div className={`flex-1 overflow-y-auto px-4 py-6 transition-all duration-300 ${usePlayerStore((state) => state.currentTrack) ? 'pb-[220px]' : 'pb-[140px]'}`}>
         {/* Security Banner */}
         <div className="text-center mb-8 px-2">
           <p className="text-zinc-500 text-xs leading-relaxed">
