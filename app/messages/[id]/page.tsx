@@ -21,6 +21,14 @@ interface OtherUser {
   avatar_url: string | null;
 }
 
+interface RoomDetails {
+  id: string;
+  is_group: boolean;
+  name: string | null;
+  avatar_url: string | null;
+  members: OtherUser[];
+}
+
 function formatTime(isoDate: string) {
   return new Date(isoDate).toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' });
 }
@@ -33,8 +41,10 @@ export default function ChatRoom({ params }: { params: Promise<{ id: string }> }
 
   const [messages, setMessages] = useState<Message[]>([]);
   const [newMessage, setNewMessage] = useState('');
+  const [roomDetails, setRoomDetails] = useState<RoomDetails | null>(null);
   const [otherUser, setOtherUser] = useState<OtherUser | null>(null);
   const [sending, setSending] = useState(false);
+  const [showGroupModal, setShowGroupModal] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
   // Fetch messages & other user info
@@ -43,7 +53,7 @@ export default function ChatRoom({ params }: { params: Promise<{ id: string }> }
 
     // Load existing messages
     loadMessages();
-    loadOtherUser();
+    loadRoomInfo();
 
     // Subscribe real-time
     // Gunakan nama channel unik (dengan Math.random) agar tidak error saat React StrictMode re-render
@@ -79,18 +89,25 @@ export default function ChatRoom({ params }: { params: Promise<{ id: string }> }
     setMessages(data as Message[]);
   }
 
-  async function loadOtherUser() {
-    const memberIds = await db.getRoomMembers(roomId);
-    if (!memberIds.length) return;
+  async function loadRoomInfo() {
+    const { data: room } = await supabase.from('chat_rooms').select('*').eq('id', roomId).single();
+    if (!room) return;
 
-    const { data: profile } = await supabase
-      .from('profiles')
-      .select('id, name, avatar_url')
-      .eq('id', memberIds[0])
-      .maybeSingle();
+    // Get members
+    const { data: membersData } = await supabase.from('chat_members').select('user_id').eq('room_id', roomId);
+    const memberIds = membersData?.map(m => m.user_id) || [];
+    
+    // Fetch profiles
+    const { data: profiles } = await supabase.from('profiles').select('id, name, avatar_url').in('id', memberIds);
+    const members = profiles || [];
 
-    if (profile) {
-      setOtherUser({ id: profile.id, name: profile.name || 'Pengguna', avatar_url: profile.avatar_url });
+    setRoomDetails({ ...room, members });
+
+    if (!room.is_group) {
+      const other = members.find(m => m.id !== user?.id);
+      if (other) {
+        setOtherUser({ id: other.id, name: other.name || 'Pengguna', avatar_url: other.avatar_url });
+      }
     }
   }
 
@@ -129,8 +146,9 @@ export default function ChatRoom({ params }: { params: Promise<{ id: string }> }
     }
   };
 
-  const displayName = otherUser?.name || 'Obrolan';
-  const displayAvatar = otherUser?.avatar_url;
+  const isGroup = roomDetails?.is_group;
+  const displayName = isGroup ? (roomDetails.name || 'Grup') : (otherUser?.name || 'Obrolan');
+  const displayAvatar = isGroup ? roomDetails.avatar_url : otherUser?.avatar_url;
 
   return (
     <div className="min-h-screen bg-[#121212] flex flex-col">
@@ -140,7 +158,10 @@ export default function ChatRoom({ params }: { params: Promise<{ id: string }> }
           <ArrowLeft className="w-6 h-6" />
         </button>
         <button
-          onClick={() => otherUser && router.push(`/user/${otherUser.id}`)}
+          onClick={() => {
+            if (isGroup) setShowGroupModal(true);
+            else if (otherUser) router.push(`/user/${otherUser.id}`);
+          }}
           className="flex items-center gap-2 hover:opacity-80 transition"
         >
           <div className="w-8 h-8 rounded-full overflow-hidden shrink-0 bg-zinc-700">
@@ -167,9 +188,8 @@ export default function ChatRoom({ params }: { params: Promise<{ id: string }> }
           </p>
         </div>
 
-        {/* Other User Profile */}
-        {otherUser && (
-          <div className="flex flex-col items-center mb-10">
+        {/* Profile / Group Card */}
+        <div className="flex flex-col items-center mb-10">
             <div className="w-24 h-24 rounded-full overflow-hidden mb-4 bg-zinc-700 flex items-center justify-center">
               {displayAvatar ? (
                 <Image src={displayAvatar} alt={displayName} width={96} height={96} className="object-cover" />
@@ -179,20 +199,23 @@ export default function ChatRoom({ params }: { params: Promise<{ id: string }> }
             </div>
             <h2 className="text-white text-2xl font-bold mb-4">{displayName}</h2>
             <button
-              onClick={() => otherUser && router.push(`/user/${otherUser.id}`)}
-              className="px-6 py-1.5 rounded-full border border-zinc-500 text-white text-sm font-semibold hover:border-white transition"
+              onClick={() => {
+                if (isGroup) setShowGroupModal(true);
+                else if (otherUser) router.push(`/user/${otherUser.id}`);
+              }}
+              className="border border-white/20 hover:bg-white/10 text-white rounded-full px-6 py-2 text-sm font-medium transition"
             >
-              Buka profil
+              {isGroup ? 'Detail grup' : 'Buka profil'}
             </button>
           </div>
-        )}
 
-        {/* Start Separator */}
-        <div className="flex items-center gap-4 mb-6">
-          <div className="h-[1px] flex-1 bg-zinc-800" />
-          <span className="text-zinc-500 text-xs">Mulai obrolan dengan {displayName}</span>
-          <div className="h-[1px] flex-1 bg-zinc-800" />
-        </div>
+          <div className="flex items-center gap-4 mb-8">
+            <div className="h-px bg-white/10 flex-1" />
+            <span className="text-zinc-500 text-xs">
+              Mulai obrolan di {isGroup ? 'grup' : displayName}
+            </span>
+            <div className="h-px bg-white/10 flex-1" />
+          </div>
 
         {/* Message Bubbles */}
         <div className="space-y-2">
@@ -254,6 +277,54 @@ export default function ChatRoom({ params }: { params: Promise<{ id: string }> }
           )}
         </form>
       </div>
+
+      {/* Group Details Modal */}
+      {showGroupModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-in fade-in duration-200">
+          <div className="bg-[#181818] w-full max-w-md rounded-2xl border border-white/10 shadow-2xl overflow-hidden flex flex-col max-h-[85vh]">
+            <div className="p-4 border-b border-white/10 flex items-center justify-between">
+              <h2 className="text-white font-bold text-lg">Detail Grup</h2>
+              <button onClick={() => setShowGroupModal(false)} className="p-2 text-zinc-400 hover:text-white transition rounded-full hover:bg-white/10">
+                <Plus className="w-5 h-5 rotate-45" />
+              </button>
+            </div>
+            <div className="p-4 flex-1 overflow-y-auto">
+              <div className="flex flex-col items-center mb-6">
+                <div className="w-20 h-20 rounded-full overflow-hidden bg-zinc-700 flex items-center justify-center mb-3">
+                  {displayAvatar ? (
+                    <Image src={displayAvatar} alt={displayName} width={80} height={80} className="object-cover" />
+                  ) : (
+                    <span className="text-white font-bold text-2xl">{displayName.charAt(0).toUpperCase()}</span>
+                  )}
+                </div>
+                <h3 className="text-white font-bold text-xl">{displayName}</h3>
+                <p className="text-zinc-400 text-sm">{roomDetails?.members.length} Anggota</p>
+              </div>
+
+              <h4 className="text-white font-medium mb-3">Anggota Grup</h4>
+              <div className="space-y-3">
+                {roomDetails?.members.map(member => (
+                  <div key={member.id} className="flex items-center gap-3">
+                    <div className="relative w-10 h-10 rounded-full overflow-hidden bg-zinc-800 shrink-0">
+                      {member.avatar_url ? (
+                        <Image src={member.avatar_url} alt={member.name} fill className="object-cover" />
+                      ) : (
+                        <div className="w-full h-full flex items-center justify-center text-zinc-500 font-bold">
+                          {member.name.charAt(0).toUpperCase()}
+                        </div>
+                      )}
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <p className="text-white font-medium truncate">{member.name}</p>
+                      {member.id === user?.id && <p className="text-xs text-[#1DB954]">Anda</p>}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
