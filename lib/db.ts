@@ -488,14 +488,6 @@ export const db = {
   },
 
   // SOCIAL & CHAT
-  async unfollowUser(userIdToUnfollow: string) {
-    const userId = await getUserId();
-    if (!userId) return false;
-    const { error } = await supabase.from('follows').delete().eq('follower_id', userId).eq('following_id', userIdToUnfollow);
-    if (error) return false;
-    return true;
-  },
-
   async blockUser(userIdToBlock: string) {
     const userId = await getUserId();
     if (!userId) return false;
