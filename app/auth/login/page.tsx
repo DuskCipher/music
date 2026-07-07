@@ -35,7 +35,11 @@ export default function LoginPage() {
       window.location.href = '/';
       
     } catch (err: any) {
-      setError('Email atau password salah.');
+      if (err.message && err.message.toLowerCase().includes('email not confirmed')) {
+        setError('Anda belum memverifikasi email Anda. Silakan periksa email Anda (termasuk folder Spam) untuk link verifikasi.');
+      } else {
+        setError('Email atau password salah.');
+      }
       setLoading(false);
     }
   };

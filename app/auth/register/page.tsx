@@ -82,8 +82,21 @@ export default function RegisterPage() {
         )}
 
         {success ? (
-          <div className="bg-green-500/10 border border-green-500/20 text-green-400 p-4 rounded-xl mb-6 text-center text-sm leading-relaxed">
-            {success}
+          <div className="flex flex-col items-center justify-center space-y-4 animate-in fade-in zoom-in duration-300">
+            <div className="bg-green-500/10 border border-green-500/20 text-green-400 p-5 rounded-2xl text-center text-sm leading-relaxed w-full">
+              {success}
+            </div>
+            {email.toLowerCase().endsWith('@gmail.com') && (
+              <a 
+                href="https://mail.google.com/" 
+                target="_blank" 
+                rel="noopener noreferrer"
+                className="w-full py-3.5 bg-white text-black font-semibold rounded-xl hover:bg-gray-200 transition-colors flex items-center justify-center gap-2"
+              >
+                <Mail className="w-5 h-5" />
+                Buka Gmail Sekarang
+              </a>
+            )}
           </div>
         ) : (
           <form onSubmit={handleRegister} className="space-y-4">
