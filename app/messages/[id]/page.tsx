@@ -258,10 +258,10 @@ export default function ChatRoom({ params }: { params: Promise<{ id: string }> }
                     <div 
                       onClick={() => {
                         const track = {
-                          id: songData.videoId,
-                          title: songData.title,
-                          artist: songData.artist,
-                          thumbnail: songData.coverUrl
+                          videoId: songData.videoId,
+                          name: songData.title,
+                          artist: { name: songData.artist },
+                          thumbnails: [{ url: songData.coverUrl, width: 300, height: 300 }]
                         };
                         playTrack(track, [track]);
                       }}
