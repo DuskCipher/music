@@ -339,6 +339,8 @@ export default function ChatRoom({ params }: { params: Promise<{ id: string }> }
             </button>
           )}
         </form>
+      </div>
+      
       {/* Modals */}
       <ShareSongModal
         isOpen={showShareModal}
