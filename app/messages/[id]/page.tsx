@@ -1,12 +1,13 @@
 'use client';
 
-import { ArrowLeft, ChevronRight, Plus, Smile, Send } from 'lucide-react';
+import { ArrowLeft, ChevronRight, Plus, Smile, Send, Play, Music } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import Image from 'next/image';
 import { useState, useRef, useEffect, use } from 'react';
 import { db } from '@/lib/db';
 import { useAuthStore, usePlayerStore } from '@/lib/store';
 import { createClient } from '@/lib/supabase/client';
+import ShareSongModal from '@/components/ShareSongModal';
 
 interface Message {
   id: string;
@@ -45,7 +46,11 @@ export default function ChatRoom({ params }: { params: Promise<{ id: string }> }
   const [otherUser, setOtherUser] = useState<OtherUser | null>(null);
   const [sending, setSending] = useState(false);
   const [showGroupModal, setShowGroupModal] = useState(false);
+  const [showShareModal, setShowShareModal] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
+
+  // Player action
+  const { setCurrentTrack, setQueue } = usePlayerStore();
 
   // Fetch messages & other user info
   useEffect(() => {
@@ -224,6 +229,23 @@ export default function ChatRoom({ params }: { params: Promise<{ id: string }> }
             const prevMsg = messages[i - 1];
             const showTime = !prevMsg || formatTime(msg.created_at) !== formatTime(prevMsg.created_at);
 
+            const isSong = msg.text.startsWith('$$SONG::');
+            let songData = null;
+            let displayText = msg.text;
+            if (isSong) {
+              const parts = msg.text.split('::');
+              if (parts.length >= 5) {
+                songData = {
+                  videoId: parts[1],
+                  title: parts[2],
+                  artist: parts[3],
+                  coverUrl: parts[4]
+                };
+              } else {
+                displayText = 'Lagu (Tidak Tersedia)';
+              }
+            }
+
             return (
               <div key={msg.id}>
                 {showTime && i > 0 && (
@@ -232,13 +254,50 @@ export default function ChatRoom({ params }: { params: Promise<{ id: string }> }
                   </div>
                 )}
                 <div className={`flex ${isMe ? 'justify-end' : 'justify-start'}`}>
-                  <div className={`max-w-[75%] rounded-2xl px-4 py-2.5 ${
-                    isMe
-                      ? 'bg-[#1DB954] text-black rounded-br-sm'
-                      : 'bg-[#282828] text-white rounded-bl-sm'
-                  }`}>
-                    <p className="text-[15px] leading-relaxed">{msg.text}</p>
-                  </div>
+                  {songData ? (
+                    <div 
+                      onClick={() => {
+                        const track = {
+                          id: songData.videoId,
+                          title: songData.title,
+                          artist: songData.artist,
+                          thumbnail: songData.coverUrl
+                        };
+                        setQueue([track]);
+                        setCurrentTrack(track);
+                      }}
+                      className={`w-64 rounded-xl overflow-hidden cursor-pointer hover:opacity-90 transition ${
+                        isMe ? 'bg-[#1DB954] text-black rounded-br-sm' : 'bg-[#282828] text-white rounded-bl-sm'
+                      }`}
+                    >
+                      <div className="relative aspect-video bg-zinc-800">
+                        {songData.coverUrl ? (
+                          <Image src={songData.coverUrl} alt={songData.title} fill className="object-cover" />
+                        ) : (
+                          <div className="w-full h-full flex items-center justify-center">
+                            <Music className="w-8 h-8 text-white/50" />
+                          </div>
+                        )}
+                        <div className="absolute inset-0 bg-black/20 flex items-center justify-center opacity-0 hover:opacity-100 transition">
+                          <div className="w-12 h-12 rounded-full bg-[#1DB954] text-black flex items-center justify-center pl-1">
+                            <Play className="w-6 h-6" />
+                          </div>
+                        </div>
+                      </div>
+                      <div className="p-3">
+                        <p className="font-bold text-sm truncate">{songData.title}</p>
+                        <p className="text-xs truncate opacity-70">{songData.artist}</p>
+                      </div>
+                    </div>
+                  ) : (
+                    <div className={`max-w-[75%] rounded-2xl px-4 py-2.5 ${
+                      isMe
+                        ? 'bg-[#1DB954] text-black rounded-br-sm'
+                        : 'bg-[#282828] text-white rounded-bl-sm'
+                    }`}>
+                      <p className="text-[15px] leading-relaxed">{displayText}</p>
+                    </div>
+                  )}
                 </div>
               </div>
             );
@@ -259,7 +318,11 @@ export default function ChatRoom({ params }: { params: Promise<{ id: string }> }
               onKeyDown={handleKeyDown}
               className="flex-1 bg-transparent text-white text-[15px] placeholder:text-zinc-500 outline-none py-2"
             />
-            <button type="button" className="text-zinc-500 hover:text-white transition p-2">
+            <button 
+              type="button" 
+              onClick={() => setShowShareModal(true)}
+              className="text-zinc-500 hover:text-white transition p-2"
+            >
               <Plus className="w-5 h-5" />
             </button>
             <button type="button" className="text-zinc-500 hover:text-white transition p-2">
@@ -276,7 +339,33 @@ export default function ChatRoom({ params }: { params: Promise<{ id: string }> }
             </button>
           )}
         </form>
-      </div>
+      {/* Modals */}
+      <ShareSongModal
+        isOpen={showShareModal}
+        onClose={() => setShowShareModal(false)}
+        onSelectSong={(song) => {
+          setShowShareModal(false);
+          const coverUrl = song.thumbnails?.[0]?.url || '';
+          const text = `$$SONG::${song.videoId}::${song.name}::${song.artist?.name || 'Unknown'}::${coverUrl}`;
+          setNewMessage(text);
+          // Auto send trick using a hidden mechanism or just let the user send it. 
+          // Since handleSend uses the state, we can't await it easily here.
+          // We'll set it in state and the user can just press send, or we trigger it.
+          // Better to trigger sending manually.
+          setTimeout(() => {
+            const formEvent = { preventDefault: () => {} } as React.FormEvent;
+            // Let's just create a quick direct DB send for songs to avoid state sync issues
+            setSending(true);
+            const tempId = `temp-${Date.now()}`;
+            setMessages(prev => [...prev, { id: tempId, text, sender_id: user?.id || '', created_at: new Date().toISOString() }]);
+            db.sendMessage(roomId, text).then(sent => {
+              if (sent) setMessages(prev => prev.map(m => m.id === tempId ? sent as Message : m));
+              setSending(false);
+              setNewMessage('');
+            });
+          }, 0);
+        }}
+      />
 
       {/* Group Details Modal */}
       {showGroupModal && (
