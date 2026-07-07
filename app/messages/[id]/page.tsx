@@ -265,27 +265,25 @@ export default function ChatRoom({ params }: { params: Promise<{ id: string }> }
                         };
                         playTrack(track, [track]);
                       }}
-                      className={`w-64 rounded-xl overflow-hidden cursor-pointer hover:opacity-90 transition ${
+                      className={`flex items-center gap-3 w-64 p-2 rounded-2xl cursor-pointer hover:opacity-90 transition shadow-sm ${
                         isMe ? 'bg-[#1DB954] text-black rounded-br-sm' : 'bg-[#282828] text-white rounded-bl-sm'
                       }`}
                     >
-                      <div className="relative aspect-video bg-zinc-800">
+                      <div className="relative w-12 h-12 rounded-lg bg-zinc-800 shrink-0 overflow-hidden">
                         {songData.coverUrl ? (
                           <Image src={songData.coverUrl} alt={songData.title} fill className="object-cover" />
                         ) : (
                           <div className="w-full h-full flex items-center justify-center">
-                            <Music className="w-8 h-8 text-white/50" />
+                            <Music className="w-6 h-6 text-white/50" />
                           </div>
                         )}
-                        <div className="absolute inset-0 bg-black/20 flex items-center justify-center opacity-0 hover:opacity-100 transition">
-                          <div className="w-12 h-12 rounded-full bg-[#1DB954] text-black flex items-center justify-center pl-1">
-                            <Play className="w-6 h-6" />
-                          </div>
-                        </div>
                       </div>
-                      <div className="p-3">
-                        <p className="font-bold text-sm truncate">{songData.title}</p>
-                        <p className="text-xs truncate opacity-70">{songData.artist}</p>
+                      <div className="flex-1 min-w-0">
+                        <p className="font-bold text-[14px] truncate leading-tight">{songData.title}</p>
+                        <p className={`text-[12px] truncate mt-0.5 ${isMe ? 'text-black/70' : 'text-zinc-400'}`}>{songData.artist}</p>
+                      </div>
+                      <div className={`shrink-0 flex items-center justify-center w-8 h-8 rounded-full ${isMe ? 'bg-black/10' : 'bg-white/10'}`}>
+                        <Play className="w-4 h-4 ml-0.5" />
                       </div>
                     </div>
                   ) : (
