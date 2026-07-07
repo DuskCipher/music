@@ -1,4 +1,5 @@
 import { NextResponse } from 'next/server';
+import fetch from 'node-fetch';
 const spotify = require('spotify-url-info')(fetch);
 
 export async function GET(request: Request) {
