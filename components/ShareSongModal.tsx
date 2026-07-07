@@ -37,11 +37,10 @@ export default function ShareSongModal({ isOpen, onClose, onSelectSong }: ShareS
   const searchSongs = async (q: string) => {
     setLoading(true);
     try {
-      const res = await fetch(`/api/search?q=${encodeURIComponent(q)}`);
+      const res = await fetch(`/api/search?q=${encodeURIComponent(q)}&type=song`);
       const data = await res.json();
-      if (data.results) {
-        // Filter out only songs
-        setResults(data.results.filter((item: any) => item.type === 'SONG'));
+      if (Array.isArray(data)) {
+        setResults(data);
       }
     } catch (error) {
       console.error("Error searching songs:", error);
