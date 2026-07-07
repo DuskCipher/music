@@ -30,6 +30,7 @@ export default function RegisterPage() {
         options: {
           data: {
             full_name: name,
+            name: name,
           }
         }
       });

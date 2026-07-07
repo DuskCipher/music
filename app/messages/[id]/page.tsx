@@ -5,7 +5,7 @@ import { useRouter } from 'next/navigation';
 import Image from 'next/image';
 import { useState, useRef, useEffect, use } from 'react';
 import { db } from '@/lib/db';
-import { useAuthStore } from '@/lib/store';
+import { useAuthStore, usePlayerStore } from '@/lib/store';
 import { createClient } from '@/lib/supabase/client';
 
 interface Message {
@@ -225,7 +225,7 @@ export default function ChatRoom({ params }: { params: Promise<{ id: string }> }
       </div>
 
       {/* Input */}
-      <div className="fixed bottom-0 left-0 right-0 z-20 bg-[#121212]/95 backdrop-blur-md px-4 pt-3 pb-28 border-t border-white/5 md:pb-6">
+      <div className={`fixed bottom-0 left-0 right-0 z-20 bg-[#121212]/95 backdrop-blur-md px-4 pt-3 border-t border-white/5 md:pb-6 transition-all duration-300 ${usePlayerStore((state) => state.currentTrack) ? 'pb-[156px]' : 'pb-[76px]'}`}>
         <form onSubmit={handleSend} className="max-w-2xl mx-auto flex items-center gap-2">
           <div className="flex-1 bg-[#2a2a2a] rounded-full flex items-center px-4 py-1 focus-within:ring-1 focus-within:ring-[#1DB954]/50 transition">
             <input
