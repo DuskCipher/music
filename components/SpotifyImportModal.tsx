@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { X, Download, Loader2, CheckCircle2 } from 'lucide-react';
 import { db } from '@/lib/db';
-import { Track } from '@/lib/types';
+import { Track } from '@/lib/store';
 
 interface SpotifyImportModalProps {
   isOpen: boolean;
@@ -81,7 +81,7 @@ export function SpotifyImportModal({ isOpen, onClose }: SpotifyImportModalProps)
       setStatus('Menyimpan playlist...');
 
       // 3. Save to local database
-      const newPlaylistId = 'playlist_' + Date.now().toString();
+      const newPlaylistId = crypto.randomUUID();
       await db.addPlaylist({
         id: newPlaylistId,
         name: data.name + ' (Imported)',

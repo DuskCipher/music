@@ -62,7 +62,7 @@ export default function Library() {
   const handleCreatePlaylist = async () => {
     if (!newPlaylistName.trim()) return;
     const newPlaylist = {
-      id: Date.now().toString(),
+      id: crypto.randomUUID(),
       name: newPlaylistName,
       img: newPlaylistImg || 'https://picsum.photos/seed/playlist/200/200',
       tracks: [],
@@ -124,7 +124,7 @@ export default function Library() {
       const data = await res.json();
       
       const newPlaylist = {
-        id: Date.now().toString(),
+        id: crypto.randomUUID(),
         name: data.name || data.title || 'Imported Playlist',
         img: data.thumbnails?.[data.thumbnails.length - 1]?.url || 'https://picsum.photos/seed/playlist/200/200',
         tracks: data.videos || data.tracks || [],
@@ -169,7 +169,7 @@ export default function Library() {
           }
           
           const newPlaylist = {
-            id: Date.now().toString(),
+            id: crypto.randomUUID(),
             name,
             img,
             tracks: tracks,
