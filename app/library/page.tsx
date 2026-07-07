@@ -11,6 +11,7 @@ import { usePlayerStore } from '@/lib/store';
 import { motion } from 'motion/react';
 import { MarqueeText } from '@/components/MarqueeText';
 import { ConfirmModal, AlertModal } from '@/components/FeedbackModals';
+import { SpotifyImportModal } from '@/components/SpotifyImportModal';
 
 export default function Library() {
   const router = useRouter();
@@ -21,6 +22,7 @@ export default function Library() {
   const [activeTab, setActiveTab] = useState('Daftar putar');
   const [showCreate, setShowCreate] = useState(false);
   const [showImport, setShowImport] = useState(false);
+  const [showSpotifyImport, setShowSpotifyImport] = useState(false);
   const [newPlaylistName, setNewPlaylistName] = useState('');
   const [newPlaylistImg, setNewPlaylistImg] = useState('');
   const [importUrl, setImportUrl] = useState('');
@@ -281,6 +283,18 @@ export default function Library() {
             </div>
             <div className="flex-1">
               <h3 className="text-white font-medium">Impor Playlist</h3>
+            </div>
+          </button>
+
+          <button
+            onClick={() => setShowSpotifyImport(true)}
+            className="flex items-center gap-4 p-3 hover:bg-white/5 rounded-xl cursor-pointer transition-colors w-full text-left"
+          >
+            <div className="w-12 h-12 bg-[#1DB954]/10 rounded-lg flex items-center justify-center shrink-0">
+              <Download className="w-6 h-6 text-[#1DB954]" />
+            </div>
+            <div className="flex-1">
+              <h3 className="text-white font-medium">Impor dari Spotify</h3>
             </div>
           </button>
 
@@ -548,6 +562,11 @@ export default function Library() {
         title={alertMessage?.title}
         message={alertMessage?.message || ''}
         onClose={() => setAlertMessage(null)}
+      />
+
+      <SpotifyImportModal 
+        isOpen={showSpotifyImport} 
+        onClose={() => setShowSpotifyImport(false)} 
       />
     </main>
   );
