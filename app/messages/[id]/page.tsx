@@ -50,7 +50,7 @@ export default function ChatRoom({ params }: { params: Promise<{ id: string }> }
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
   // Player action
-  const { setCurrentTrack, setQueue } = usePlayerStore();
+  const { playTrack } = usePlayerStore();
 
   // Fetch messages & other user info
   useEffect(() => {
@@ -263,8 +263,7 @@ export default function ChatRoom({ params }: { params: Promise<{ id: string }> }
                           artist: songData.artist,
                           thumbnail: songData.coverUrl
                         };
-                        setQueue([track]);
-                        setCurrentTrack(track);
+                        playTrack(track, [track]);
                       }}
                       className={`w-64 rounded-xl overflow-hidden cursor-pointer hover:opacity-90 transition ${
                         isMe ? 'bg-[#1DB954] text-black rounded-br-sm' : 'bg-[#282828] text-white rounded-bl-sm'
