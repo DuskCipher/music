@@ -1,16 +1,17 @@
 'use client';
 
-import { ChevronLeft, ChevronRight, Home, Search, Bell, Users, Crown } from 'lucide-react';
+import { ChevronLeft, ChevronRight, Home, Search, Bell, Users, Crown, MessageCircle, Trophy, Plus, Check } from 'lucide-react';
 import { useRouter, usePathname } from 'next/navigation';
-import { useAuthStore, usePartyStore } from '@/lib/store';
+import { useAuthStore, usePartyStore, usePlayerStore } from '@/lib/store';
 import Image from 'next/image';
 import { useState, useEffect } from 'react';
 
 export function TopBar() {
   const router = useRouter();
   const pathname = usePathname();
-  const { user, isAuthenticated, logout } = useAuthStore();
+  const { user, isAuthenticated, logout, savedAccounts } = useAuthStore();
   const partyStore = usePartyStore();
+  const setRightSidebarMode = usePlayerStore(state => state.setRightSidebarMode);
   const [searchQuery, setSearchQuery] = useState('');
   const [showNotifications, setShowNotifications] = useState(false);
   const [showProfileMenu, setShowProfileMenu] = useState(false);
@@ -79,6 +80,14 @@ export function TopBar() {
         >
           <Crown className="w-4 h-4" />
           <span className="text-xs font-bold hidden xl:inline">Premium</span>
+        </button>
+
+        <button 
+          onClick={() => router.push('/messages')}
+          className={`w-8 h-8 flex items-center justify-center rounded-full transition-colors ${pathname.startsWith('/messages') ? 'bg-zinc-800 text-white' : 'hover:bg-zinc-800 text-zinc-400 hover:text-white'}`}
+          title="Pesan"
+        >
+          <MessageCircle className="w-5 h-5" />
         </button>
 
         <button 
@@ -169,7 +178,39 @@ export function TopBar() {
                 className="fixed inset-0 z-40"
                 onClick={() => setShowProfileMenu(false)}
               />
-              <div className="absolute right-0 mt-2 w-48 bg-zinc-900 border border-zinc-800 rounded-lg shadow-2xl z-50 overflow-hidden flex flex-col py-1">
+              <div className="absolute right-0 mt-2 w-56 bg-zinc-900 border border-zinc-800 rounded-lg shadow-2xl z-50 overflow-hidden flex flex-col py-1">
+                {/* Saved Accounts */}
+                {savedAccounts.length > 1 && (
+                  <>
+                    <p className="px-4 pt-2 pb-1 text-[10px] text-zinc-500 uppercase tracking-wider font-bold">Akun Tersimpan</p>
+                    {savedAccounts.map((acc) => (
+                      <div
+                        key={acc.id}
+                        className={`flex items-center gap-3 px-4 py-2 text-sm cursor-pointer transition-colors ${acc.id === user?.id ? 'text-white bg-white/5' : 'text-zinc-300 hover:bg-zinc-800/50 hover:text-white'}`}
+                      >
+                        <div className="w-6 h-6 rounded-full overflow-hidden bg-zinc-700 relative shrink-0">
+                          {acc.avatarUrl ? (
+                            <Image src={acc.avatarUrl} alt={acc.name} width={24} height={24} className="object-cover" />
+                          ) : (
+                            <div className="w-full h-full flex items-center justify-center text-[10px] font-bold">{acc.name?.charAt(0).toUpperCase()}</div>
+                          )}
+                        </div>
+                        <span className="flex-1 truncate">{acc.name}</span>
+                        {acc.id === user?.id && <Check className="w-4 h-4 text-green-400 shrink-0" />}
+                      </div>
+                    ))}
+                    <div className="h-px bg-zinc-800/50 my-1" />
+                  </>
+                )}
+
+                <button 
+                  onClick={() => { setShowProfileMenu(false); router.push('/auth'); }}
+                  className="w-full text-left px-4 py-3 text-sm text-zinc-300 hover:bg-zinc-800/50 hover:text-white transition-colors flex items-center gap-3"
+                >
+                  <Plus className="w-4 h-4 text-zinc-400" />
+                  Tambah akun
+                </button>
+                <div className="h-px bg-zinc-800/50 my-1" />
                 <button 
                   onClick={() => { setShowProfileMenu(false); router.push('/settings'); }}
                   className="w-full text-left px-4 py-3 text-sm text-zinc-300 hover:bg-zinc-800/50 hover:text-white transition-colors"
@@ -181,6 +222,13 @@ export function TopBar() {
                   className="w-full text-left px-4 py-3 text-sm text-zinc-300 hover:bg-zinc-800/50 hover:text-white transition-colors"
                 >
                   Berlangganan
+                </button>
+                <button 
+                  onClick={() => { setShowProfileMenu(false); setRightSidebarMode('leaderboard'); }}
+                  className="w-full text-left px-4 py-3 text-sm text-zinc-300 hover:bg-zinc-800/50 hover:text-white transition-colors flex items-center gap-3"
+                >
+                  <Trophy className="w-4 h-4 text-yellow-500" />
+                  Top Pendengar
                 </button>
                 <div className="h-px bg-zinc-800/50 my-1" />
                 <button 

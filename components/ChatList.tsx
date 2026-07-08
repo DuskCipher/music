@@ -37,10 +37,8 @@ function formatDate(isoDate: string) {
   return d.toLocaleDateString('id-ID', { day: 'numeric', month: 'short' });
 }
 
-export default function MessagesLayout({ children }: { children: React.ReactNode }) {
+export function ChatList() {
   const router = useRouter();
-  const pathname = usePathname();
-  const isChatRoom = pathname !== '/messages';
   const { user, isAuthenticated } = useAuthStore();
   const [rooms, setRooms] = useState<ChatRoom[]>([]);
   const [loading, setLoading] = useState(true);
@@ -176,13 +174,8 @@ export default function MessagesLayout({ children }: { children: React.ReactNode
   }
 
   return (
-    <div className="min-h-screen bg-[#121212] md:h-[100dvh] md:overflow-hidden md:flex">
-      {/* SIDEBAR (List) */}
-      <div className={`
-        ${isChatRoom ? 'hidden md:flex' : 'flex'} 
-        flex-col w-full md:w-[350px] lg:w-[400px] md:border-r border-white/5 h-full overflow-y-auto pb-32 md:pb-0 shrink-0
-      `}>
-        {/* Header */}
+    <div className="flex flex-col w-full h-full overflow-y-auto pb-32 md:pb-0 shrink-0 bg-[#121212] lg:rounded-lg">
+      {/* Header */}
       <div className="sticky top-0 z-10 bg-[#121212] px-4 py-4 flex items-center justify-between border-b border-white/5">
         <button onClick={() => router.back()} className="text-white hover:opacity-70 transition">
           <ArrowLeft className="w-6 h-6" />
@@ -296,15 +289,6 @@ export default function MessagesLayout({ children }: { children: React.ReactNode
           alert('Pengguna berhasil diblokir.');
         }}
       />
-      </div>
-
-      {/* MAIN CONTENT (Children) */}
-      <div className={`
-        ${!isChatRoom ? 'hidden md:flex' : 'flex'} 
-        flex-1 h-full flex-col bg-[#0A0A0A] relative min-w-0
-      `}>
-        {children}
-      </div>
     </div>
   );
 }

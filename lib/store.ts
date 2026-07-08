@@ -22,7 +22,7 @@ interface PlayerState {
   isPlaying: boolean;
   isExpanded: boolean;
   isRightSidebarOpen: boolean;
-  rightSidebarMode: 'info' | 'queue';
+  rightSidebarMode: 'info' | 'queue' | 'leaderboard';
   volume: number;
   progress: number;
   duration: number;
@@ -45,7 +45,7 @@ interface PlayerState {
   setPlaying: (playing: boolean) => void;
   setExpanded: (expanded: boolean) => void;
   toggleRightSidebar: () => void;
-  setRightSidebarMode: (mode: 'info' | 'queue') => void;
+  setRightSidebarMode: (mode: 'info' | 'queue' | 'leaderboard') => void;
   setProgress: (progress: number) => void;
   setDuration: (duration: number) => void;
   setVolume: (volume: number) => void;

@@ -8,6 +8,7 @@ import { db } from '@/lib/db';
 import { BadgeCheck, PanelRightClose, MoreHorizontal, ChevronLeft, Play } from 'lucide-react';
 import { QueueList } from '../QueueList';
 import { useRouter } from 'next/navigation';
+import { LeaderboardContent } from '../LeaderboardContent';
 
 export function RightSidebar() {
   const router = useRouter();
@@ -63,7 +64,7 @@ export function RightSidebar() {
     }
   };
 
-  if (!currentTrack) {
+  if (!currentTrack && rightSidebarMode !== 'leaderboard') {
     return (
       <div className="w-full h-full bg-zinc-900 rounded-lg flex items-center justify-center p-4">
         <p className="text-zinc-500 text-center">Putar lagu untuk melihat detailnya di sini</p>
@@ -86,13 +87,24 @@ export function RightSidebar() {
             </button>
             <h2 className="font-bold text-base text-white">Antrean</h2>
           </div>
+        ) : rightSidebarMode === 'leaderboard' ? (
+          <div className="flex items-center gap-2">
+            <button 
+              onClick={() => setRightSidebarMode('info')}
+              className="text-zinc-400 hover:text-white transition p-1 hover:bg-zinc-800 rounded-full"
+              title="Kembali ke Info Lagu"
+            >
+              <ChevronLeft className="w-5 h-5" />
+            </button>
+            <h2 className="font-bold text-base text-white">Top Pendengar</h2>
+          </div>
         ) : (
           <h2 
             className="font-bold text-base truncate pr-4 text-white hover:underline cursor-pointer"
             onClick={() => setRightSidebarMode('queue')}
             title="Lihat Antrean"
           >
-            {currentTrack.name}
+            {currentTrack?.name}
           </h2>
         )}
         <div className="flex items-center gap-3 text-zinc-400">
@@ -118,29 +130,37 @@ export function RightSidebar() {
           <div className="p-4">
             <QueueList />
           </div>
+        ) : rightSidebarMode === 'leaderboard' ? (
+          <div className="pt-2">
+            <LeaderboardContent compact={true} />
+          </div>
         ) : (
           <div className="p-4 pt-0 flex flex-col gap-4">
             {/* Main Image */}
-            <div className="relative w-full aspect-square rounded-xl overflow-hidden shadow-2xl mb-4 group">
-              <Image 
-                src={getHighResImage(currentTrack.thumbnails?.[currentTrack.thumbnails.length - 1]?.url)} 
-                alt={currentTrack.name}
-                fill
-                className="object-cover transition-transform duration-500 group-hover:scale-105"
-              />
-            </div>
+            {currentTrack && (
+              <div className="relative w-full aspect-square rounded-xl overflow-hidden shadow-2xl mb-4 group">
+                <Image 
+                  src={getHighResImage(currentTrack.thumbnails?.[currentTrack.thumbnails.length - 1]?.url)} 
+                  alt={currentTrack.name}
+                  fill
+                  className="object-cover transition-transform duration-500 group-hover:scale-105"
+                />
+              </div>
+            )}
 
             {/* Title and Artist */}
-            <div className="flex items-start justify-between gap-4 mb-6">
-              <div className="min-w-0 flex-1">
-                <h1 className="text-2xl font-bold text-white leading-tight mb-1 hover:underline cursor-pointer line-clamp-2">
-                  {currentTrack.name}
-                </h1>
-                <p className="text-zinc-400 text-base hover:underline cursor-pointer truncate">
-                  {artistName}
-                </p>
+            {currentTrack && (
+              <div className="flex items-start justify-between gap-4 mb-6">
+                <div className="min-w-0 flex-1">
+                  <h1 className="text-2xl font-bold text-white leading-tight mb-1 hover:underline cursor-pointer line-clamp-2">
+                    {currentTrack.name}
+                  </h1>
+                  <p className="text-zinc-400 text-base hover:underline cursor-pointer truncate">
+                    {artistName}
+                  </p>
+                </div>
               </div>
-            </div>
+            )}
 
             {/* About the artist card */}
             {artistDetails && (
@@ -192,45 +212,47 @@ export function RightSidebar() {
             )}
 
             {/* Credits Section */}
-            <div className="bg-zinc-800/50 rounded-xl p-4">
-              <div className="flex items-center justify-between mb-4">
-                <h3 className="font-bold text-white">Credits</h3>
-                {Array.isArray(currentTrack.artist) && currentTrack.artist.length > 1 && (
-                  <span 
-                    onClick={() => setIsCreditsExpanded(!isCreditsExpanded)}
-                    className="text-xs font-semibold text-zinc-400 hover:text-white cursor-pointer transition-colors"
-                  >
-                    {isCreditsExpanded ? 'Show less' : 'Show all'}
-                  </span>
-                )}
-              </div>
-              
-              <div className="flex flex-col gap-4">
-                {(Array.isArray(currentTrack.artist) ? currentTrack.artist : [currentTrack.artist])
-                  .filter(Boolean)
-                  .slice(0, isCreditsExpanded ? undefined : 1)
-                  .map((art: any, index) => (
-                  <div key={art.artistId || art.name} className="flex items-center justify-between group/credit">
-                    <div>
-                      <p className="font-semibold text-white group-hover/credit:underline cursor-pointer">{art.name}</p>
-                      <p className="text-sm text-zinc-400">{index === 0 ? 'Main Artist' : 'Featured Artist'}</p>
+            {currentTrack && (
+              <div className="bg-zinc-800/50 rounded-xl p-4">
+                <div className="flex items-center justify-between mb-4">
+                  <h3 className="font-bold text-white">Credits</h3>
+                  {Array.isArray(currentTrack.artist) && currentTrack.artist.length > 1 && (
+                    <span 
+                      onClick={() => setIsCreditsExpanded(!isCreditsExpanded)}
+                      className="text-xs font-semibold text-zinc-400 hover:text-white cursor-pointer transition-colors"
+                    >
+                      {isCreditsExpanded ? 'Show less' : 'Show all'}
+                    </span>
+                  )}
+                </div>
+                
+                <div className="flex flex-col gap-4">
+                  {(Array.isArray(currentTrack.artist) ? currentTrack.artist : [currentTrack.artist])
+                    .filter(Boolean)
+                    .slice(0, isCreditsExpanded ? undefined : 1)
+                    .map((art: any, index) => (
+                    <div key={art.artistId || art.name} className="flex items-center justify-between group/credit">
+                      <div>
+                        <p className="font-semibold text-white group-hover/credit:underline cursor-pointer">{art.name}</p>
+                        <p className="text-sm text-zinc-400">{index === 0 ? 'Main Artist' : 'Featured Artist'}</p>
+                      </div>
+                      {index === 0 && artistDetails && (
+                        <button 
+                          onClick={handleSubscribe}
+                          className={`px-4 py-1.5 rounded-full border text-sm font-medium transition ${
+                            isSubscribed 
+                              ? 'bg-transparent text-white border-white/50 hover:border-white' 
+                              : 'bg-white text-black border-white hover:bg-zinc-200 hover:scale-105'
+                          }`}
+                        >
+                          {isSubscribed ? 'Following' : 'Follow'}
+                        </button>
+                      )}
                     </div>
-                    {index === 0 && artistDetails && (
-                      <button 
-                        onClick={handleSubscribe}
-                        className={`px-4 py-1.5 rounded-full border text-sm font-medium transition ${
-                          isSubscribed 
-                            ? 'bg-transparent text-white border-white/50 hover:border-white' 
-                            : 'bg-white text-black border-white hover:bg-zinc-200 hover:scale-105'
-                        }`}
-                      >
-                        {isSubscribed ? 'Following' : 'Follow'}
-                      </button>
-                    )}
-                  </div>
-                ))}
+                  ))}
+                </div>
               </div>
-            </div>
+            )}
 
             {/* Top Songs */}
             {artistDetails?.topSongs && artistDetails.topSongs.length > 0 && (

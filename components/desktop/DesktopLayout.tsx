@@ -4,6 +4,7 @@ import { ReactNode } from 'react';
 import { TopBar } from './TopBar';
 import { LeftSidebar } from './LeftSidebar';
 import { RightSidebar } from './RightSidebar';
+import { ChatList } from '@/components/ChatList';
 import { usePathname } from 'next/navigation';
 import { usePlayerStore } from '@/lib/store';
 
@@ -40,18 +41,14 @@ export function DesktopLayout({ children }: { children: ReactNode }) {
         {/* Main 3-Panel Area */}
         <div className="flex flex-1 gap-2 overflow-hidden min-h-0">
           
-          {/* Left Sidebar (Library) */}
+          {/* Left Sidebar (Library or Chat) */}
           <div className="w-[320px] shrink-0 xl:w-[380px] flex flex-col min-h-0">
-            <LeftSidebar />
+            {pathname.startsWith('/messages') ? <ChatList /> : <LeftSidebar />}
           </div>
 
           {/* Center Main Content */}
-          <main className="flex-1 bg-zinc-900 rounded-lg overflow-y-auto relative min-w-0">
-            {/* 
-              We wrap children in a container that padding compensates for mobile vs desktop 
-              Since children might have padding, we just let them render.
-            */}
-            <div className="pb-10">
+          <main className={`flex-1 bg-zinc-900 rounded-lg relative min-w-0 flex flex-col ${pathname.startsWith('/messages') ? '' : 'overflow-y-auto'}`}>
+            <div className={pathname.startsWith('/messages') ? 'flex-1 min-h-0 h-full' : 'pb-10'}>
               {children}
             </div>
           </main>
