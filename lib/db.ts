@@ -451,7 +451,7 @@ export const db = {
   async getMessages(roomId: string) {
     const { data, error } = await supabase
       .from('messages')
-      .select('id, text, sender_id, created_at, message_reactions(emoji, user_id)')
+      .select('id, text, sender_id, created_at, reply_to_id, is_edited, is_deleted, message_reactions(emoji, user_id)')
       .eq('room_id', roomId)
       .order('created_at', { ascending: true });
 
@@ -460,18 +460,51 @@ export const db = {
   },
 
   /** Kirim pesan ke sebuah room */
-  async sendMessage(roomId: string, text: string) {
+  async sendMessage(roomId: string, text: string, replyToId?: string) {
     const userId = await getUserId();
     if (!userId || !text.trim()) return null;
 
     const { data, error } = await supabase
       .from('messages')
-      .insert({ room_id: roomId, sender_id: userId, text: text.trim() })
+      .insert({ 
+        room_id: roomId, 
+        sender_id: userId, 
+        text: text.trim(),
+        ...(replyToId && { reply_to_id: replyToId })
+      })
       .select()
       .single();
 
     if (error) { console.error(error); return null; }
     return data;
+  },
+
+  async editMessage(messageId: string, newText: string) {
+    const userId = await getUserId();
+    if (!userId || !newText.trim()) return false;
+
+    const { error } = await supabase
+      .from('messages')
+      .update({ text: newText.trim(), is_edited: true })
+      .eq('id', messageId)
+      .eq('sender_id', userId);
+    
+    if (error) { console.error(error); return false; }
+    return true;
+  },
+
+  async deleteMessage(messageId: string) {
+    const userId = await getUserId();
+    if (!userId) return false;
+
+    const { error } = await supabase
+      .from('messages')
+      .update({ is_deleted: true, text: 'Pesan ini telah dihapus' })
+      .eq('id', messageId)
+      .eq('sender_id', userId);
+    
+    if (error) { console.error(error); return false; }
+    return true;
   },
 
   async toggleMessageReaction(messageId: string, emoji: string) {
@@ -615,17 +648,109 @@ export const db = {
     });
   },
 
-  // LEADERBOARD
-  async getLeaderboard() {
+  async deleteStory(storyId: string) {
+    const userId = await getUserId();
+    if (!userId) return false;
+    
+    const { error } = await supabase.from('stories').delete().eq('id', storyId).eq('user_id', userId);
+    if (error) {
+      console.error(error);
+      return false;
+    }
+    return true;
+  },
+
+  async markStoryAsViewed(storyId: string) {
+    const userId = await getUserId();
+    if (!userId) return;
+    
+    await supabase.from('story_views').insert({
+      story_id: storyId,
+      user_id: userId
+    }).select().maybeSingle(); // Use maybeSingle to suppress error on conflict if we handle it or just let it fail silently on duplicate
+  },
+
+  async getViewedStoryIds() {
+    const userId = await getUserId();
+    if (!userId) return [];
+
     const { data, error } = await supabase
-      .from('leaderboard_view')
-      .select('*')
-      .limit(10);
-      
+      .from('story_views')
+      .select('story_id')
+      .eq('user_id', userId);
+
     if (error) {
       console.error(error);
       return [];
     }
+    return data.map(d => d.story_id);
+  },
+
+  async getStoryViewers(storyId: string) {
+    const userId = await getUserId();
+    if (!userId) return [];
+
+    // Verify ownership first (only creator can see viewers)
+    const { data: storyData } = await supabase.from('stories').select('user_id').eq('id', storyId).single();
+    if (storyData?.user_id !== userId) return [];
+
+    const { data, error } = await supabase
+      .from('story_views')
+      .select('user_id')
+      .eq('story_id', storyId);
+
+    if (error || !data || data.length === 0) return [];
+    
+    // Get profiles for those users
+    const userIds = data.map(d => d.user_id);
+    const { data: profiles } = await supabase.from('profiles').select('id, name, avatar_url').in('id', userIds);
+    
+    return profiles || [];
+  },
+
+  // LEADERBOARD
+  async getLeaderboard() {
+    const { data, error } = await supabase
+      .from('leaderboard_view')
+      .select('user_id, total_plays')
+      .limit(10);
+      
+    if (error || !data) return [];
+    
+    const userIds = data.map(d => d.user_id);
+    const { data: profiles } = await supabase
+      .from('profiles')
+      .select('id, name, avatar_url')
+      .in('id', userIds);
+      
+    return data.map(d => {
+      const p = profiles?.find(prof => prof.id === d.user_id);
+      return {
+        ...d,
+        name: p?.name || 'Pengguna',
+        avatar_url: p?.avatar_url || null
+      };
+    }).sort((a, b) => b.total_plays - a.total_plays);
+  },
+
+  async getSavedStickers() {
+    const userId = await getUserId();
+    if (!userId) return [];
+    const { data, error } = await supabase.from('saved_stickers').select('id, url').eq('user_id', userId).order('created_at', { ascending: false });
+    if (error) return [];
     return data || [];
+  },
+
+  async saveSticker(url: string) {
+    const userId = await getUserId();
+    if (!userId) return null;
+    const { data, error } = await supabase.from('saved_stickers').insert({ user_id: userId, url }).select().single();
+    if (error) return null;
+    return data;
+  },
+
+  async deleteSavedSticker(id: string) {
+    const { error } = await supabase.from('saved_stickers').delete().eq('id', id);
+    return !error;
   }
 };

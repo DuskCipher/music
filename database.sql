@@ -154,7 +154,18 @@ CREATE TABLE IF NOT EXISTS public.messages (
   room_id    uuid REFERENCES public.chat_rooms(id) ON DELETE CASCADE,
   sender_id  uuid NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
   text       text NOT NULL,
-  created_at timestamp with time zone DEFAULT now()
+  created_at timestamp with time zone DEFAULT now(),
+  reply_to_id uuid REFERENCES public.messages(id) ON DELETE SET NULL,
+  is_edited  boolean DEFAULT false,
+  is_deleted boolean DEFAULT false
+);
+
+CREATE TABLE IF NOT EXISTS public.saved_stickers (
+  id         uuid DEFAULT gen_random_uuid() PRIMARY KEY,
+  user_id    uuid NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
+  url        text NOT NULL,
+  created_at timestamp with time zone DEFAULT now(),
+  UNIQUE(user_id, url)
 );
 
 CREATE TABLE IF NOT EXISTS public.blocks (
@@ -199,6 +210,7 @@ ALTER TABLE public.global_notifications ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.chat_rooms           ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.chat_members         ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.messages             ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.saved_stickers       ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.blocks               ENABLE ROW LEVEL SECURITY;
 
 -- ============================================================
@@ -355,6 +367,98 @@ WHERE
   public.profiles.name IS NULL
   OR public.profiles.name = ''
   OR public.profiles.name = 'Pengguna';
+
+-- ============================================================
+-- BAGIAN 11: STORIES
+-- ============================================================
+
+CREATE TABLE IF NOT EXISTS public.stories (
+  id         uuid DEFAULT gen_random_uuid() PRIMARY KEY,
+  user_id    uuid NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
+  track_data jsonb NOT NULL,
+  caption    text,
+  created_at timestamp with time zone DEFAULT now()
+);
+
+CREATE TABLE IF NOT EXISTS public.story_views (
+  story_id   uuid NOT NULL REFERENCES public.stories(id) ON DELETE CASCADE,
+  user_id    uuid NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
+  viewed_at  timestamp with time zone DEFAULT now(),
+  PRIMARY KEY (story_id, user_id)
+);
+
+CREATE INDEX IF NOT EXISTS idx_stories_user_id ON public.stories(user_id);
+CREATE INDEX IF NOT EXISTS idx_stories_created_at ON public.stories(created_at DESC);
+CREATE INDEX IF NOT EXISTS idx_story_views_user_id ON public.story_views(user_id);
+
+ALTER TABLE public.stories       ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.story_views   ENABLE ROW LEVEL SECURITY;
+
+DROP POLICY IF EXISTS "Stories are viewable by everyone" ON public.stories;
+CREATE POLICY "Stories are viewable by everyone" ON public.stories FOR SELECT USING (true);
+
+DROP POLICY IF EXISTS "Users can create their own stories" ON public.stories;
+CREATE POLICY "Users can create their own stories" ON public.stories FOR INSERT WITH CHECK (auth.uid() = user_id);
+
+DROP POLICY IF EXISTS "Users can delete their own stories" ON public.stories;
+CREATE POLICY "Users can delete their own stories" ON public.stories FOR DELETE USING (auth.uid() = user_id);
+
+-- Story Views
+CREATE POLICY "Users can view story viewers" ON public.story_views
+  FOR SELECT USING (
+    EXISTS (
+      SELECT 1 FROM public.stories
+      WHERE stories.id = story_views.story_id
+      AND stories.user_id = auth.uid()
+    ) OR auth.uid() = user_id
+  );
+  
+CREATE POLICY "Users can insert story views" ON public.story_views
+  FOR INSERT WITH CHECK (auth.uid() = user_id);
+
+-- Saved Stickers
+CREATE POLICY "Users can manage their own saved stickers" ON public.saved_stickers
+  FOR ALL USING (auth.uid() = user_id);
+
+-- ============================================================
+-- BAGIAN 12: AUTO-CLEANUP STORIES (Cron Job)
+-- ============================================================
+-- Skrip ini akan menghapus story secara otomatis setelah berumur 24 jam.
+-- Memerlukan ekstensi pg_cron yang tersedia di Supabase.
+
+CREATE EXTENSION IF NOT EXISTS pg_cron;
+
+-- Menjadwalkan penghapusan story setiap 1 jam sekali (untuk story yang usianya > 24 jam)
+SELECT cron.schedule(
+  'cleanup_old_stories', 
+  '0 * * * *', 
+  $$ DELETE FROM public.stories WHERE created_at < NOW() - INTERVAL '24 hours'; $$
+);
+
+-- Catatan: Jika suatu saat Anda ingin mematikan cron job ini, gunakan perintah:
+-- SELECT cron.unschedule('cleanup_old_stories');
+
+-- ====================================================================
+-- BAGIAN 13: STORAGE (Penyimpanan Berkas)
+-- ====================================================================
+-- Pastikan tabel storage (storage.buckets & storage.objects) tersedia.
+-- Secara default, ekstensi dan skema storage sudah ada di Supabase.
+
+-- Buat bucket 'stickers' untuk foto yang diunggah pengguna menjadi stiker
+INSERT INTO storage.buckets (id, name, public)
+VALUES ('stickers', 'stickers', true)
+ON CONFLICT (id) DO NOTHING;
+
+-- Aturan (Policies) untuk bucket 'stickers'
+DROP POLICY IF EXISTS "Public access to stickers" ON storage.objects;
+CREATE POLICY "Public access to stickers"
+ON storage.objects FOR SELECT
+USING (bucket_id = 'stickers');
+
+DROP POLICY IF EXISTS "Users can upload their own stickers" ON storage.objects;
+CREATE POLICY "Users can upload their own stickers"
+ON storage.objects FOR INSERT
+WITH CHECK (bucket_id = 'stickers' AND auth.role() = 'authenticated');
 
 -- ====================================================================
 -- SELESAI! Database siap digunakan.

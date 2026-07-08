@@ -33,55 +33,70 @@ export default function LeaderboardPage() {
   };
 
   return (
-    <div className="p-6 pb-32 max-w-2xl mx-auto min-h-screen">
-      <div className="flex items-center gap-4 mb-8">
-        <div className="w-12 h-12 rounded-2xl bg-gradient-to-br from-yellow-400 to-orange-600 flex items-center justify-center shadow-lg">
-          <Trophy className="w-6 h-6 text-white" />
+    <div className="p-4 md:p-6 pb-32 max-w-3xl mx-auto min-h-screen">
+      <div className="flex items-center gap-4 mb-6">
+        <div className="w-12 h-12 rounded-full bg-[#1DB954]/10 flex items-center justify-center relative overflow-hidden">
+          <Image src="/icon.png" alt="Logo" fill className="object-cover opacity-80" />
         </div>
         <div>
-          <h1 className="text-3xl font-black text-white">Top Pendengar</h1>
-          <p className="text-zinc-400 text-sm">Peringkat berdasarkan total lagu diputar minggu ini</p>
+          <h1 className="text-2xl font-bold text-white">Top Pendengar</h1>
+          <p className="text-zinc-400 text-xs font-medium mt-1">Peringkat berdasarkan total lagu diputar minggu ini</p>
         </div>
       </div>
 
       {loading ? (
-        <div className="space-y-4">
+        <div className="space-y-2">
           {[1,2,3,4,5].map(i => (
-            <div key={i} className="h-16 bg-white/5 animate-pulse rounded-2xl" />
+            <div key={i} className="h-14 bg-white/5 animate-pulse rounded-lg" />
           ))}
         </div>
       ) : (
-        <div className="space-y-3">
-          {leaders.map((leader, idx) => (
-            <div 
-              key={leader.user_id}
-              onClick={() => router.push(`/user/${leader.user_id}`)}
-              className="bg-[#181818] border border-white/5 rounded-2xl p-4 flex items-center gap-4 hover:bg-white/5 transition cursor-pointer group"
-            >
-              <div className="flex items-center justify-center shrink-0 w-8">
-                {getRankIcon(idx)}
-              </div>
-              
-              <div className="w-12 h-12 rounded-full overflow-hidden bg-zinc-800 shrink-0 relative">
-                {leader.avatar_url ? (
-                  <Image src={leader.avatar_url} alt={leader.name} fill className="object-cover" />
-                ) : (
-                  <div className="w-full h-full flex items-center justify-center font-bold text-zinc-500 text-lg">
-                    {leader.name?.charAt(0).toUpperCase()}
-                  </div>
-                )}
-              </div>
+        <div className="flex flex-col gap-1">
+          {leaders.map((leader, idx) => {
+            const isTop1 = idx === 0;
+            const isTop2 = idx === 1;
+            const isTop3 = idx === 2;
+            
+            return (
+              <div 
+                key={leader.user_id}
+                onClick={() => router.push(`/user/${leader.user_id}`)}
+                className="group flex items-center gap-3 p-2 hover:bg-white/10 rounded-md cursor-pointer transition-colors"
+              >
+                <div className="flex items-center justify-center shrink-0 w-8">
+                  {getRankIcon(idx)}
+                </div>
+                
+                <div className={`w-10 h-10 rounded-full overflow-hidden shrink-0 relative ${isTop1 ? 'ring-2 ring-yellow-500' : isTop2 ? 'ring-2 ring-gray-400' : isTop3 ? 'ring-2 ring-amber-700' : 'bg-zinc-800'}`}>
+                  {leader.avatar_url ? (
+                    <Image src={leader.avatar_url} alt={leader.name} fill className="object-cover" />
+                  ) : (
+                    <div className="w-full h-full flex items-center justify-center font-bold text-zinc-500 text-sm bg-zinc-800">
+                      {leader.name?.charAt(0).toUpperCase()}
+                    </div>
+                  )}
+                </div>
 
-              <div className="flex-1 min-w-0">
-                <h3 className="font-bold text-white text-lg truncate group-hover:text-[#1DB954] transition">{leader.name}</h3>
-              </div>
+                <div className="flex-1 min-w-0">
+                  <h3 className={`font-medium text-sm truncate ${isTop1 ? 'text-yellow-500 font-bold' : 'text-white'}`}>
+                    {leader.name}
+                  </h3>
+                  <p className="text-xs text-zinc-400 truncate">
+                    Pendengar Setia
+                  </p>
+                </div>
 
-              <div className="text-right">
-                <p className="text-2xl font-black text-white">{leader.total_plays}</p>
-                <p className="text-[10px] uppercase tracking-wider text-zinc-500 font-bold">Putaran</p>
+                <div className="text-right flex items-center gap-2">
+                  <span className={`text-sm font-medium ${isTop1 ? 'text-yellow-500' : 'text-white'}`}>
+                    {leader.total_plays}
+                  </span>
+                  <span className="text-xs text-zinc-500">
+                    kali
+                  </span>
+                </div>
               </div>
-            </div>
-          ))}
+            );
+          })}
           {leaders.length === 0 && (
             <div className="text-center py-20 text-zinc-500">
               <Trophy className="w-12 h-12 mx-auto mb-4 opacity-20" />

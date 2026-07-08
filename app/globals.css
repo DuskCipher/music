@@ -51,3 +51,18 @@ body.pip-active > *:not(.fixed.inset-0.z-\\[999999\\]):not(script):not(style) {
   scrollbar-width: thin;
   scrollbar-color: rgba(255, 255, 255, 0.2) transparent;
 }
+
+/* Native App Feel Utilities */
+body {
+  overscroll-behavior-y: none; /* Prevent pull-to-refresh bounce */
+  user-select: none; /* Disable text selection globally */
+  -webkit-user-select: none;
+  -webkit-tap-highlight-color: transparent; /* Remove blue highlight on tap */
+}
+
+/* Re-enable text selection for inputs */
+input, textarea, [contenteditable="true"] {
+  user-select: auto;
+  -webkit-user-select: auto;
+}
+

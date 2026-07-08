@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useRef, useState, useCallback } from 'react';
-import { usePlayerStore, useSettingsStore } from '@/lib/store';
+import { usePlayerStore, useSettingsStore, usePartyStore } from '@/lib/store';
 import { db } from '@/lib/db';
 import YouTube from 'react-youtube';
 import { Capacitor } from '@capacitor/core';
@@ -59,6 +59,9 @@ export function Player() {
   const [showSleepTimer, setShowSleepTimer] = useState(false);
   const [sleepRemaining, setSleepRemaining] = useState<string | null>(null);
   const [isPipMode, setIsPipMode] = useState(false);
+  
+  const { roomId: partyRoomId, isHost: isPartyHost } = usePartyStore();
+  const isGuest = Boolean(partyRoomId && !isPartyHost);
   
   const playerRef = useRef<any>(null);
   const lyricsContainerRef = useRef<HTMLDivElement>(null);
@@ -621,9 +624,10 @@ export function Player() {
               <button
                 onClick={(e) => {
                   e.stopPropagation();
-                  togglePlay();
+                  if (!isGuest) togglePlay();
                 }}
-                className="w-10 h-10 rounded-full border border-white/10 flex items-center justify-center text-white hover:bg-white/10 transition-colors"
+                disabled={isGuest}
+                className={cn("w-10 h-10 rounded-full border border-white/10 flex items-center justify-center text-white transition-colors", isGuest ? "opacity-30 cursor-not-allowed" : "hover:bg-white/10")}
               >
                 {isPlaying ? <Pause className="w-5 h-5 fill-current" /> : <Play className="w-5 h-5 fill-current ml-0.5" />}
               </button>
@@ -791,8 +795,10 @@ export function Player() {
                         min={0}
                         max={duration || 100}
                         value={progress || 0}
-                        onChange={handleSeek}
-                        className="w-full h-1 bg-white/20 rounded-full appearance-none [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:w-3 [&::-webkit-slider-thumb]:h-3 [&::-webkit-slider-thumb]:bg-white [&::-webkit-slider-thumb]:rounded-full cursor-pointer"
+                        onChange={(e) => {
+                          if (!isGuest) handleSeek(e);
+                        }}
+                        className={cn("w-full h-1 bg-white/20 rounded-full appearance-none [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:w-3 [&::-webkit-slider-thumb]:h-3 [&::-webkit-slider-thumb]:bg-white [&::-webkit-slider-thumb]:rounded-full cursor-pointer", isGuest && "pointer-events-none opacity-50")}
                       />
                       <div className="flex justify-between text-xs text-white/50 mt-2 font-mono">
                         <span>{formatTime(progress)}</span>
@@ -804,20 +810,22 @@ export function Player() {
                     <div className="flex justify-between items-center mb-8 px-2">
                       <button 
                         onClick={toggleShuffle}
-                        className={cn("transition", isShuffle ? "text-[#A78BFA]" : "text-white/80 hover:text-white")}
+                        disabled={isGuest}
+                        className={cn("transition", isShuffle ? "text-[#A78BFA]" : "text-white/80 hover:text-white", isGuest && "opacity-30 cursor-not-allowed")}
                       >
                         <Shuffle className="w-6 h-6" />
                       </button>
-                      <button onClick={playPrev} className="text-white hover:text-white transition">
+                      <button onClick={playPrev} disabled={isGuest} className={cn("text-white transition", isGuest ? "opacity-30 cursor-not-allowed" : "hover:text-white")}>
                         <SkipBack className="w-10 h-10 fill-current" />
                       </button>
                       <button
                         onClick={togglePlay}
-                        className="w-20 h-20 flex items-center justify-center bg-white text-black rounded-full hover:scale-105 transition-transform"
+                        disabled={isGuest}
+                        className={cn("w-20 h-20 flex items-center justify-center bg-white text-black rounded-full transition-transform", isGuest ? "opacity-30 cursor-not-allowed" : "hover:scale-105")}
                       >
                         {isPlaying ? <Pause className="w-10 h-10 fill-current" /> : <Play className="w-10 h-10 fill-current ml-1" />}
                       </button>
-                      <button onClick={playNext} className="text-white hover:text-white transition">
+                      <button onClick={playNext} disabled={isGuest} className={cn("text-white transition", isGuest ? "opacity-30 cursor-not-allowed" : "hover:text-white")}>
                         <SkipForward className="w-10 h-10 fill-current" />
                       </button>
                       <button 

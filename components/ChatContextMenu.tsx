@@ -15,7 +15,7 @@ export default function ChatContextMenu({ isOpen, onClose, user, onViewProfile, 
   if (!isOpen || !user) return null;
 
   return (
-    <div className="fixed inset-0 z-50 flex items-end justify-center sm:items-center bg-black/60 backdrop-blur-sm animate-in fade-in duration-200" onClick={onClose}>
+    <div className="fixed inset-0 z-[100] flex items-end justify-center sm:items-center bg-black/60 backdrop-blur-sm animate-in fade-in duration-200" onClick={onClose}>
       <div 
         className="bg-[#181818] w-full max-w-md sm:rounded-2xl rounded-t-2xl border-t sm:border border-white/10 shadow-2xl overflow-hidden flex flex-col animate-in slide-in-from-bottom-full sm:slide-in-from-bottom-10 duration-300"
         onClick={e => e.stopPropagation()}
