@@ -144,6 +144,67 @@ export default function PremiumPage() {
     }
   };
 
+  const handleClaimFreeTrial = async () => {
+    if (!isAuthenticated || !user) {
+      router.push('/auth/login');
+      return;
+    }
+    
+    if (user.isPremium) {
+      alert("Anda sudah memiliki akses Premium.");
+      return;
+    }
+    
+    setSubmitting(true);
+    try {
+      // Check if user already claimed trial
+      const { data: existingTrial } = await supabase
+        .from('transactions')
+        .select('id')
+        .eq('user_id', user.id)
+        .eq('status', 'free_trial')
+        .maybeSingle();
+        
+      if (existingTrial) {
+        alert("Anda sudah pernah mengklaim penawaran Premium 1 Bulan Gratis sebelumnya.");
+        setSubmitting(false);
+        return;
+      }
+      
+      // Calculate expiration (30 days from now)
+      const expiresAt = new Date();
+      expiresAt.setDate(expiresAt.getDate() + 30);
+      
+      // Update profile
+      const { error: profileError } = await supabase
+        .from('profiles')
+        .update({
+          is_premium: true,
+          premium_expires_at: expiresAt.toISOString()
+        })
+        .eq('id', user.id);
+        
+      if (profileError) throw profileError;
+      
+      // Record trial claim in transactions
+      await supabase
+        .from('transactions')
+        .insert([{
+          user_id: user.id,
+          status: 'free_trial'
+        }]);
+        
+      alert("Selamat! Anda sekarang menikmati Premium 1 Bulan Gratis.");
+      updateUser({ ...user, isPremium: true });
+      window.location.reload();
+    } catch (err: any) {
+      console.error("Error claiming trial:", err);
+      alert("Gagal mengklaim Premium: " + err.message);
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
   const formatRupiah = (num: number) => {
     return new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', minimumFractionDigits: 0 }).format(num);
   };
@@ -177,8 +238,12 @@ export default function PremiumPage() {
               Dengarkan tanpa batas. Nikmati gratis 1 bulan layanan Premium Standard untuk merasakan pengalaman terbaik dengan Stream Beats.
             </h1>
 
-            <button className="w-full bg-white text-black font-bold py-3.5 rounded-full text-[15px] hover:scale-[1.02] active:scale-[0.98] transition-transform mb-4">
-              Dapatkan 1 Bulan Gratis
+            <button 
+              onClick={handleClaimFreeTrial}
+              disabled={submitting || user?.isPremium}
+              className="w-full bg-white text-black font-bold py-3.5 rounded-full text-[15px] hover:scale-[1.02] active:scale-[0.98] transition-transform mb-4 disabled:opacity-50 disabled:hover:scale-100 flex items-center justify-center gap-2"
+            >
+              {submitting ? <Loader2 className="w-5 h-5 animate-spin" /> : user?.isPremium ? 'Anda sudah Premium' : 'Dapatkan 1 Bulan Gratis'}
             </button>
             <p className="text-[#a7a7a7] text-xs leading-relaxed">
               Gratis selama 1 bulan pertama, lalu Rp 10.000 per bulan sesudahnya. Penawaran ini khusus untuk pengguna baru agar dapat merasakan layanan Premium sepenuhnya. <span className="underline cursor-pointer">Persyaratan berlaku.</span> Lihat paket lainnya di bawah ini.

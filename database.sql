@@ -1,5 +1,6 @@
 -- ====================================================================
--- DATABASE SCHEMA LENGKAP - APLIKASI MUSIK (MUSIKUZYY)
+-- DATABASE SCHEMA LENGKAP - APLIKASI MUSIK (MUSIKUZYY / STREAM BEATS)
+-- VERSI FINAL (Mencakup Premium, Chat, Leaderboard, Stories, dll)
 -- Salin semua isi file ini dan jalankan di SQL Editor Supabase.
 -- URL: https://supabase.com/dashboard -> pilih project -> SQL Editor
 -- ====================================================================
@@ -9,25 +10,28 @@
 -- ============================================================
 
 CREATE TABLE IF NOT EXISTS public.profiles (
-  id         uuid PRIMARY KEY REFERENCES auth.users(id) ON DELETE CASCADE,
-  name       text,
-  avatar_url text,
-  banner_url text,
-  updated_at timestamp with time zone DEFAULT now()
+  id                 uuid PRIMARY KEY REFERENCES auth.users(id) ON DELETE CASCADE,
+  email              text,
+  name               text,
+  full_name          text,
+  avatar_url         text,
+  banner_url         text,
+  is_premium         boolean DEFAULT false,
+  premium_expires_at timestamp with time zone,
+  is_admin           boolean DEFAULT false,
+  updated_at         timestamp with time zone DEFAULT now(),
+  created_at         timestamp with time zone DEFAULT now()
 );
 
 CREATE OR REPLACE FUNCTION public.handle_new_user()
 RETURNS trigger AS $$
 BEGIN
-  INSERT INTO public.profiles (id, name, avatar_url, banner_url)
+  INSERT INTO public.profiles (id, email, name, full_name, avatar_url, banner_url)
   VALUES (
     NEW.id,
-    COALESCE(
-      NEW.raw_user_meta_data->>'name',
-      NEW.raw_user_meta_data->>'full_name',
-      split_part(NEW.email, '@', 1),
-      'Pengguna'
-    ),
+    NEW.email,
+    COALESCE(NEW.raw_user_meta_data->>'name', split_part(NEW.email, '@', 1), 'Pengguna'),
+    COALESCE(NEW.raw_user_meta_data->>'full_name', NEW.raw_user_meta_data->>'name', split_part(NEW.email, '@', 1), 'Pengguna'),
     NEW.raw_user_meta_data->>'avatar_url',
     NEW.raw_user_meta_data->>'banner_url'
   )
@@ -42,7 +46,7 @@ CREATE TRIGGER on_auth_user_created
   FOR EACH ROW EXECUTE FUNCTION public.handle_new_user();
 
 -- ============================================================
--- BAGIAN 2: TABEL MUSIK
+-- BAGIAN 2: TABEL MUSIK & SOSIAL
 -- ============================================================
 
 CREATE TABLE IF NOT EXISTS public.playlists (
@@ -96,10 +100,6 @@ CREATE TABLE IF NOT EXISTS public.recent_searches (
   PRIMARY KEY (user_id, query)
 );
 
--- ============================================================
--- BAGIAN 3: TABEL SOSIAL
--- ============================================================
-
 CREATE TABLE IF NOT EXISTS public.follows (
   follower_id  uuid NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
   following_id uuid NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
@@ -108,8 +108,23 @@ CREATE TABLE IF NOT EXISTS public.follows (
   CONSTRAINT no_self_follow CHECK (follower_id <> following_id)
 );
 
+CREATE TABLE IF NOT EXISTS public.blocks (
+  blocker_id uuid REFERENCES auth.users(id) ON DELETE CASCADE,
+  blocked_id uuid REFERENCES auth.users(id) ON DELETE CASCADE,
+  created_at timestamp with time zone DEFAULT now(),
+  PRIMARY KEY (blocker_id, blocked_id)
+);
+
+-- LEADERBOARD VIEW
+CREATE OR REPLACE VIEW public.leaderboard_view AS
+SELECT 
+  user_id,
+  COUNT(*) as total_plays
+FROM public.play_history
+GROUP BY user_id;
+
 -- ============================================================
--- BAGIAN 4: TABEL NOTIFIKASI
+-- BAGIAN 3: TABEL NOTIFIKASI
 -- ============================================================
 
 CREATE TABLE IF NOT EXISTS public.notifications (
@@ -131,7 +146,7 @@ CREATE TABLE IF NOT EXISTS public.global_notifications (
 );
 
 -- ============================================================
--- BAGIAN 5: TABEL PESAN / CHAT
+-- BAGIAN 4: TABEL PESAN / CHAT
 -- ============================================================
 
 CREATE TABLE IF NOT EXISTS public.chat_rooms (
@@ -150,14 +165,23 @@ CREATE TABLE IF NOT EXISTS public.chat_members (
 );
 
 CREATE TABLE IF NOT EXISTS public.messages (
-  id         uuid DEFAULT gen_random_uuid() PRIMARY KEY,
-  room_id    uuid REFERENCES public.chat_rooms(id) ON DELETE CASCADE,
-  sender_id  uuid NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
-  text       text NOT NULL,
-  created_at timestamp with time zone DEFAULT now(),
+  id          uuid DEFAULT gen_random_uuid() PRIMARY KEY,
+  room_id     uuid REFERENCES public.chat_rooms(id) ON DELETE CASCADE,
+  sender_id   uuid NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
+  text        text NOT NULL,
+  created_at  timestamp with time zone DEFAULT now(),
   reply_to_id uuid REFERENCES public.messages(id) ON DELETE SET NULL,
-  is_edited  boolean DEFAULT false,
-  is_deleted boolean DEFAULT false
+  is_edited   boolean DEFAULT false,
+  is_deleted  boolean DEFAULT false
+);
+
+CREATE TABLE IF NOT EXISTS public.message_reactions (
+  id         uuid DEFAULT gen_random_uuid() PRIMARY KEY,
+  message_id uuid NOT NULL REFERENCES public.messages(id) ON DELETE CASCADE,
+  user_id    uuid NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
+  emoji      text NOT NULL,
+  created_at timestamp with time zone DEFAULT now(),
+  UNIQUE(message_id, user_id, emoji)
 );
 
 CREATE TABLE IF NOT EXISTS public.saved_stickers (
@@ -168,208 +192,31 @@ CREATE TABLE IF NOT EXISTS public.saved_stickers (
   UNIQUE(user_id, url)
 );
 
-CREATE TABLE IF NOT EXISTS public.blocks (
-  blocker_id uuid REFERENCES auth.users(id) ON DELETE CASCADE,
-  blocked_id uuid REFERENCES auth.users(id) ON DELETE CASCADE,
-  created_at timestamp with time zone DEFAULT now(),
-  PRIMARY KEY (blocker_id, blocked_id)
+-- ============================================================
+-- BAGIAN 5: TABEL PREMIUM & TRANSAKSI
+-- ============================================================
+
+CREATE TABLE IF NOT EXISTS public.premium_packages (
+  id            uuid DEFAULT gen_random_uuid() PRIMARY KEY,
+  name          text NOT NULL,
+  price         integer NOT NULL,
+  duration_days integer NOT NULL,
+  benefits      text[] DEFAULT '{}'::text[],
+  is_active     boolean DEFAULT true,
+  created_at    timestamp with time zone DEFAULT now()
+);
+
+CREATE TABLE IF NOT EXISTS public.transactions (
+  id              uuid DEFAULT gen_random_uuid() PRIMARY KEY,
+  user_id         uuid NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
+  package_id      uuid REFERENCES public.premium_packages(id) ON DELETE SET NULL,
+  status          text NOT NULL DEFAULT 'pending', -- 'pending', 'approved', 'rejected', 'free_trial'
+  proof_image_url text,
+  created_at      timestamp with time zone DEFAULT now()
 );
 
 -- ============================================================
--- BAGIAN 6: INDEX
--- ============================================================
-
-CREATE INDEX IF NOT EXISTS idx_playlists_user_id         ON public.playlists(user_id);
-CREATE INDEX IF NOT EXISTS idx_liked_songs_user_id        ON public.liked_songs(user_id);
-CREATE INDEX IF NOT EXISTS idx_play_history_user_id       ON public.play_history(user_id);
-CREATE INDEX IF NOT EXISTS idx_play_history_played_at     ON public.play_history(played_at DESC);
-CREATE INDEX IF NOT EXISTS idx_subscribed_artists_user_id ON public.subscribed_artists(user_id);
-CREATE INDEX IF NOT EXISTS idx_saved_albums_user_id       ON public.saved_albums(user_id);
-CREATE INDEX IF NOT EXISTS idx_follows_follower_id        ON public.follows(follower_id);
-CREATE INDEX IF NOT EXISTS idx_follows_following_id       ON public.follows(following_id);
-CREATE INDEX IF NOT EXISTS idx_notifications_user_id      ON public.notifications(user_id);
-CREATE INDEX IF NOT EXISTS idx_chat_members_user_id       ON public.chat_members(user_id);
-CREATE INDEX IF NOT EXISTS idx_messages_room_id           ON public.messages(room_id);
-CREATE INDEX IF NOT EXISTS idx_messages_created_at        ON public.messages(created_at ASC);
-CREATE INDEX IF NOT EXISTS idx_blocks_blocker_id          ON public.blocks(blocker_id);
-
--- ============================================================
--- BAGIAN 7: MENGAKTIFKAN ROW LEVEL SECURITY (RLS)
--- ============================================================
-
-ALTER TABLE public.profiles             ENABLE ROW LEVEL SECURITY;
-ALTER TABLE public.playlists            ENABLE ROW LEVEL SECURITY;
-ALTER TABLE public.liked_songs          ENABLE ROW LEVEL SECURITY;
-ALTER TABLE public.play_history         ENABLE ROW LEVEL SECURITY;
-ALTER TABLE public.subscribed_artists   ENABLE ROW LEVEL SECURITY;
-ALTER TABLE public.saved_albums         ENABLE ROW LEVEL SECURITY;
-ALTER TABLE public.recent_searches      ENABLE ROW LEVEL SECURITY;
-ALTER TABLE public.follows              ENABLE ROW LEVEL SECURITY;
-ALTER TABLE public.notifications        ENABLE ROW LEVEL SECURITY;
-ALTER TABLE public.global_notifications ENABLE ROW LEVEL SECURITY;
-ALTER TABLE public.chat_rooms           ENABLE ROW LEVEL SECURITY;
-ALTER TABLE public.chat_members         ENABLE ROW LEVEL SECURITY;
-ALTER TABLE public.messages             ENABLE ROW LEVEL SECURITY;
-ALTER TABLE public.saved_stickers       ENABLE ROW LEVEL SECURITY;
-ALTER TABLE public.blocks               ENABLE ROW LEVEL SECURITY;
-
--- ============================================================
--- BAGIAN 8: POLICIES (Aturan Akses Data)
--- ============================================================
-
--- PROFILES
-DROP POLICY IF EXISTS "Profiles are viewable by everyone" ON public.profiles;
-CREATE POLICY "Profiles are viewable by everyone"
-  ON public.profiles FOR SELECT USING (true);
-
-DROP POLICY IF EXISTS "Users can update their own profile" ON public.profiles;
-CREATE POLICY "Users can update their own profile"
-  ON public.profiles FOR UPDATE USING (auth.uid() = id);
-
-DROP POLICY IF EXISTS "Insert own profile" ON public.profiles;
-CREATE POLICY "Insert own profile"
-  ON public.profiles FOR INSERT WITH CHECK (auth.uid() = id);
-
--- PLAYLISTS
-DROP POLICY IF EXISTS "Public playlists are viewable by everyone" ON public.playlists;
-CREATE POLICY "Public playlists are viewable by everyone"
-  ON public.playlists FOR SELECT USING (true);
-
-DROP POLICY IF EXISTS "Users can CRUD their own playlists" ON public.playlists;
-CREATE POLICY "Users can CRUD their own playlists"
-  ON public.playlists FOR ALL USING (auth.uid() = user_id);
-
--- LIKED SONGS
-DROP POLICY IF EXISTS "Users can manage their own liked songs" ON public.liked_songs;
-CREATE POLICY "Users can manage their own liked songs"
-  ON public.liked_songs FOR ALL USING (auth.uid() = user_id);
-
--- PLAY HISTORY
-DROP POLICY IF EXISTS "Users can manage their own play history" ON public.play_history;
-CREATE POLICY "Users can manage their own play history"
-  ON public.play_history FOR ALL USING (auth.uid() = user_id);
-
--- SUBSCRIBED ARTISTS
-DROP POLICY IF EXISTS "Users can manage their own subscribed artists" ON public.subscribed_artists;
-CREATE POLICY "Users can manage their own subscribed artists"
-  ON public.subscribed_artists FOR ALL USING (auth.uid() = user_id);
-
--- SAVED ALBUMS
-DROP POLICY IF EXISTS "Users can manage their own saved albums" ON public.saved_albums;
-CREATE POLICY "Users can manage their own saved albums"
-  ON public.saved_albums FOR ALL USING (auth.uid() = user_id);
-
--- RECENT SEARCHES
-DROP POLICY IF EXISTS "Users can manage their own search history" ON public.recent_searches;
-CREATE POLICY "Users can manage their own search history"
-  ON public.recent_searches FOR ALL USING (auth.uid() = user_id);
-
--- FOLLOWS
-DROP POLICY IF EXISTS "Follows are viewable by everyone" ON public.follows;
-CREATE POLICY "Follows are viewable by everyone"
-  ON public.follows FOR SELECT USING (true);
-
-DROP POLICY IF EXISTS "Users can manage their own follows" ON public.follows;
-CREATE POLICY "Users can manage their own follows"
-  ON public.follows FOR ALL USING (auth.uid() = follower_id);
-
--- BLOCKS
-DROP POLICY IF EXISTS "Blocks are viewable by everyone" ON public.blocks;
-CREATE POLICY "Blocks are viewable by everyone"
-  ON public.blocks FOR SELECT USING (true);
-
-DROP POLICY IF EXISTS "Users can manage their own blocks" ON public.blocks;
-CREATE POLICY "Users can manage their own blocks"
-  ON public.blocks FOR ALL USING (auth.uid() = blocker_id);
-
--- NOTIFICATIONS
-DROP POLICY IF EXISTS "Users can view their own notifications" ON public.notifications;
-CREATE POLICY "Users can view their own notifications"
-  ON public.notifications FOR SELECT USING (auth.uid() = user_id);
-
-DROP POLICY IF EXISTS "Users can update their own notifications" ON public.notifications;
-CREATE POLICY "Users can update their own notifications"
-  ON public.notifications FOR UPDATE USING (auth.uid() = user_id);
-
--- GLOBAL NOTIFICATIONS
-DROP POLICY IF EXISTS "Authenticated users can view global notifications" ON public.global_notifications;
-CREATE POLICY "Authenticated users can view global notifications"
-  ON public.global_notifications FOR SELECT USING (auth.role() = 'authenticated');
-
--- CHAT ROOMS
-DROP POLICY IF EXISTS "Chat room members can view their rooms" ON public.chat_rooms;
-CREATE POLICY "Chat room members can view their rooms"
-  ON public.chat_rooms FOR SELECT
-  USING (
-    id IN (SELECT room_id FROM public.chat_members WHERE user_id = auth.uid())
-  );
-
-DROP POLICY IF EXISTS "Authenticated users can create chat rooms" ON public.chat_rooms;
-CREATE POLICY "Authenticated users can create chat rooms"
-  ON public.chat_rooms FOR INSERT WITH CHECK (auth.role() = 'authenticated');
-
--- CHAT MEMBERS
-DROP POLICY IF EXISTS "Members can view other members in same room" ON public.chat_members;
-CREATE POLICY "Members can view other members in same room"
-  ON public.chat_members FOR SELECT
-  USING (
-    room_id IN (SELECT room_id FROM public.chat_members WHERE user_id = auth.uid())
-  );
-
-DROP POLICY IF EXISTS "Authenticated users can join chat rooms" ON public.chat_members;
-CREATE POLICY "Authenticated users can join chat rooms"
-  ON public.chat_members FOR INSERT WITH CHECK (auth.role() = 'authenticated');
-
--- MESSAGES
-DROP POLICY IF EXISTS "Members can view messages in their rooms" ON public.messages;
-CREATE POLICY "Members can view messages in their rooms"
-  ON public.messages FOR SELECT
-  USING (
-    room_id IN (SELECT room_id FROM public.chat_members WHERE user_id = auth.uid())
-  );
-
-DROP POLICY IF EXISTS "Members can send messages to their rooms" ON public.messages;
-CREATE POLICY "Members can send messages to their rooms"
-  ON public.messages FOR INSERT
-  WITH CHECK (
-    auth.uid() = sender_id
-    AND room_id IN (SELECT room_id FROM public.chat_members WHERE user_id = auth.uid())
-  );
-
--- ============================================================
--- BAGIAN 9: REALTIME (Wajib untuk chat real-time)
--- ============================================================
-
-ALTER PUBLICATION supabase_realtime ADD TABLE public.messages;
-
--- ============================================================
--- BAGIAN 10: BACKFILL - Sinkronisasi nama & avatar pengguna lama
--- ============================================================
-
-INSERT INTO public.profiles (id, name, avatar_url, banner_url)
-SELECT
-  id,
-  COALESCE(
-    raw_user_meta_data->>'name',
-    raw_user_meta_data->>'full_name',
-    split_part(email, '@', 1),
-    'Pengguna'
-  ),
-  raw_user_meta_data->>'avatar_url',
-  raw_user_meta_data->>'banner_url'
-FROM auth.users
-ON CONFLICT (id) DO UPDATE
-SET
-  name       = EXCLUDED.name,
-  avatar_url = EXCLUDED.avatar_url,
-  banner_url = EXCLUDED.banner_url
-WHERE
-  public.profiles.name IS NULL
-  OR public.profiles.name = ''
-  OR public.profiles.name = 'Pengguna';
-
--- ============================================================
--- BAGIAN 11: STORIES
+-- BAGIAN 6: TABEL STORIES
 -- ============================================================
 
 CREATE TABLE IF NOT EXISTS public.stories (
@@ -387,78 +234,128 @@ CREATE TABLE IF NOT EXISTS public.story_views (
   PRIMARY KEY (story_id, user_id)
 );
 
-CREATE INDEX IF NOT EXISTS idx_stories_user_id ON public.stories(user_id);
-CREATE INDEX IF NOT EXISTS idx_stories_created_at ON public.stories(created_at DESC);
-CREATE INDEX IF NOT EXISTS idx_story_views_user_id ON public.story_views(user_id);
+-- ============================================================
+-- BAGIAN 7: INDEX
+-- ============================================================
 
-ALTER TABLE public.stories       ENABLE ROW LEVEL SECURITY;
-ALTER TABLE public.story_views   ENABLE ROW LEVEL SECURITY;
-
-DROP POLICY IF EXISTS "Stories are viewable by everyone" ON public.stories;
-CREATE POLICY "Stories are viewable by everyone" ON public.stories FOR SELECT USING (true);
-
-DROP POLICY IF EXISTS "Users can create their own stories" ON public.stories;
-CREATE POLICY "Users can create their own stories" ON public.stories FOR INSERT WITH CHECK (auth.uid() = user_id);
-
-DROP POLICY IF EXISTS "Users can delete their own stories" ON public.stories;
-CREATE POLICY "Users can delete their own stories" ON public.stories FOR DELETE USING (auth.uid() = user_id);
-
--- Story Views
-CREATE POLICY "Users can view story viewers" ON public.story_views
-  FOR SELECT USING (
-    EXISTS (
-      SELECT 1 FROM public.stories
-      WHERE stories.id = story_views.story_id
-      AND stories.user_id = auth.uid()
-    ) OR auth.uid() = user_id
-  );
-  
-CREATE POLICY "Users can insert story views" ON public.story_views
-  FOR INSERT WITH CHECK (auth.uid() = user_id);
-
--- Saved Stickers
-CREATE POLICY "Users can manage their own saved stickers" ON public.saved_stickers
-  FOR ALL USING (auth.uid() = user_id);
+CREATE INDEX IF NOT EXISTS idx_playlists_user_id         ON public.playlists(user_id);
+CREATE INDEX IF NOT EXISTS idx_liked_songs_user_id        ON public.liked_songs(user_id);
+CREATE INDEX IF NOT EXISTS idx_play_history_user_id       ON public.play_history(user_id);
+CREATE INDEX IF NOT EXISTS idx_play_history_played_at     ON public.play_history(played_at DESC);
+CREATE INDEX IF NOT EXISTS idx_chat_members_user_id       ON public.chat_members(user_id);
+CREATE INDEX IF NOT EXISTS idx_messages_room_id           ON public.messages(room_id);
+CREATE INDEX IF NOT EXISTS idx_messages_created_at        ON public.messages(created_at ASC);
+CREATE INDEX IF NOT EXISTS idx_transactions_user_id       ON public.transactions(user_id);
+CREATE INDEX IF NOT EXISTS idx_transactions_status        ON public.transactions(status);
+CREATE INDEX IF NOT EXISTS idx_stories_user_id            ON public.stories(user_id);
+CREATE INDEX IF NOT EXISTS idx_stories_created_at         ON public.stories(created_at DESC);
 
 -- ============================================================
--- BAGIAN 12: AUTO-CLEANUP STORIES (Cron Job)
+-- BAGIAN 8: ROW LEVEL SECURITY (RLS)
 -- ============================================================
--- Skrip ini akan menghapus story secara otomatis setelah berumur 24 jam.
--- Memerlukan ekstensi pg_cron yang tersedia di Supabase.
 
+ALTER TABLE public.profiles             ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.playlists            ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.liked_songs          ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.play_history         ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.subscribed_artists   ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.saved_albums         ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.recent_searches      ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.follows              ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.blocks               ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.notifications        ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.global_notifications ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.chat_rooms           ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.chat_members         ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.messages             ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.message_reactions    ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.saved_stickers       ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.premium_packages     ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.transactions         ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.stories              ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.story_views          ENABLE ROW LEVEL SECURITY;
+
+-- Buka Akses Membaca (Read) ke Tabel yang Diperlukan Semua Orang
+CREATE POLICY "Public Read Access" ON public.profiles             FOR SELECT USING (true);
+CREATE POLICY "Public Read Access" ON public.playlists            FOR SELECT USING (true);
+CREATE POLICY "Public Read Access" ON public.follows              FOR SELECT USING (true);
+CREATE POLICY "Public Read Access" ON public.blocks               FOR SELECT USING (true);
+CREATE POLICY "Public Read Access" ON public.global_notifications FOR SELECT USING (auth.role() = 'authenticated');
+CREATE POLICY "Public Read Access" ON public.premium_packages     FOR SELECT USING (true);
+CREATE POLICY "Public Read Access" ON public.stories              FOR SELECT USING (true);
+
+-- Aturan Khusus Tabel Transaksi
+CREATE POLICY "Users can insert their own transactions" ON public.transactions FOR INSERT WITH CHECK (auth.uid() = user_id);
+CREATE POLICY "Users can view their own transactions" ON public.transactions FOR SELECT USING (auth.uid() = user_id);
+
+-- Aturan Khusus Tabel Profil
+CREATE POLICY "Users can update their own profile" ON public.profiles FOR UPDATE USING (auth.uid() = id);
+
+-- Aturan Chat & Messages
+CREATE POLICY "Chat room members can view their rooms" ON public.chat_rooms FOR SELECT USING (id IN (SELECT room_id FROM public.chat_members WHERE user_id = auth.uid()));
+CREATE POLICY "Authenticated users can create chat rooms" ON public.chat_rooms FOR INSERT WITH CHECK (auth.role() = 'authenticated');
+
+CREATE POLICY "Members can view other members in same room" ON public.chat_members FOR SELECT USING (room_id IN (SELECT room_id FROM public.chat_members WHERE user_id = auth.uid()));
+CREATE POLICY "Authenticated users can join chat rooms" ON public.chat_members FOR INSERT WITH CHECK (auth.role() = 'authenticated');
+
+CREATE POLICY "Members can view messages in their rooms" ON public.messages FOR SELECT USING (room_id IN (SELECT room_id FROM public.chat_members WHERE user_id = auth.uid()));
+CREATE POLICY "Members can send messages to their rooms" ON public.messages FOR INSERT WITH CHECK (auth.uid() = sender_id AND room_id IN (SELECT room_id FROM public.chat_members WHERE user_id = auth.uid()));
+
+CREATE POLICY "Members can view reactions" ON public.message_reactions FOR SELECT USING (message_id IN (SELECT id FROM public.messages WHERE room_id IN (SELECT room_id FROM public.chat_members WHERE user_id = auth.uid())));
+CREATE POLICY "Users can manage their own reactions" ON public.message_reactions FOR ALL USING (auth.uid() = user_id);
+
+-- Default: Users Can Manage Their Own Data (CRUD)
+CREATE POLICY "Manage own playlists"          ON public.playlists            FOR ALL USING (auth.uid() = user_id);
+CREATE POLICY "Manage own liked_songs"        ON public.liked_songs          FOR ALL USING (auth.uid() = user_id);
+CREATE POLICY "Manage own play_history"       ON public.play_history         FOR ALL USING (auth.uid() = user_id);
+CREATE POLICY "Manage own subscribed_artists" ON public.subscribed_artists   FOR ALL USING (auth.uid() = user_id);
+CREATE POLICY "Manage own saved_albums"       ON public.saved_albums         FOR ALL USING (auth.uid() = user_id);
+CREATE POLICY "Manage own recent_searches"    ON public.recent_searches      FOR ALL USING (auth.uid() = user_id);
+CREATE POLICY "Manage own follows"            ON public.follows              FOR ALL USING (auth.uid() = follower_id);
+CREATE POLICY "Manage own blocks"             ON public.blocks               FOR ALL USING (auth.uid() = blocker_id);
+CREATE POLICY "Manage own notifications"      ON public.notifications        FOR ALL USING (auth.uid() = user_id);
+CREATE POLICY "Manage own saved_stickers"     ON public.saved_stickers       FOR ALL USING (auth.uid() = user_id);
+CREATE POLICY "Manage own stories"            ON public.stories              FOR ALL USING (auth.uid() = user_id);
+
+CREATE POLICY "Users can insert story views"  ON public.story_views FOR INSERT WITH CHECK (auth.uid() = user_id);
+CREATE POLICY "Users can view story viewers"  ON public.story_views FOR SELECT USING (
+  EXISTS (SELECT 1 FROM public.stories WHERE stories.id = story_views.story_id AND stories.user_id = auth.uid()) OR auth.uid() = user_id
+);
+
+-- ============================================================
+-- BAGIAN 9: REALTIME
+-- ============================================================
+ALTER PUBLICATION supabase_realtime ADD TABLE public.messages;
+ALTER PUBLICATION supabase_realtime ADD TABLE public.transactions;
+
+-- ============================================================
+-- BAGIAN 10: AUTO-CLEANUP STORIES (Cron Job)
+-- ============================================================
 CREATE EXTENSION IF NOT EXISTS pg_cron;
-
--- Menjadwalkan penghapusan story setiap 1 jam sekali (untuk story yang usianya > 24 jam)
 SELECT cron.schedule(
   'cleanup_old_stories', 
   '0 * * * *', 
   $$ DELETE FROM public.stories WHERE created_at < NOW() - INTERVAL '24 hours'; $$
 );
 
--- Catatan: Jika suatu saat Anda ingin mematikan cron job ini, gunakan perintah:
--- SELECT cron.unschedule('cleanup_old_stories');
-
 -- ====================================================================
--- BAGIAN 13: STORAGE (Penyimpanan Berkas)
+-- BAGIAN 11: STORAGE (Penyimpanan Berkas)
 -- ====================================================================
--- Pastikan tabel storage (storage.buckets & storage.objects) tersedia.
--- Secara default, ekstensi dan skema storage sudah ada di Supabase.
+INSERT INTO storage.buckets (id, name, public) VALUES ('stickers', 'stickers', true) ON CONFLICT (id) DO NOTHING;
+INSERT INTO storage.buckets (id, name, public) VALUES ('payments', 'payments', true) ON CONFLICT (id) DO NOTHING;
+INSERT INTO storage.buckets (id, name, public) VALUES ('qris', 'qris', true) ON CONFLICT (id) DO NOTHING;
 
--- Buat bucket 'stickers' untuk foto yang diunggah pengguna menjadi stiker
-INSERT INTO storage.buckets (id, name, public)
-VALUES ('stickers', 'stickers', true)
-ON CONFLICT (id) DO NOTHING;
-
--- Aturan (Policies) untuk bucket 'stickers'
 DROP POLICY IF EXISTS "Public access to stickers" ON storage.objects;
-CREATE POLICY "Public access to stickers"
-ON storage.objects FOR SELECT
-USING (bucket_id = 'stickers');
+CREATE POLICY "Public access to stickers" ON storage.objects FOR SELECT USING (bucket_id = 'stickers');
+CREATE POLICY "Users can upload their own stickers" ON storage.objects FOR INSERT WITH CHECK (bucket_id = 'stickers' AND auth.role() = 'authenticated');
 
-DROP POLICY IF EXISTS "Users can upload their own stickers" ON storage.objects;
-CREATE POLICY "Users can upload their own stickers"
-ON storage.objects FOR INSERT
-WITH CHECK (bucket_id = 'stickers' AND auth.role() = 'authenticated');
+DROP POLICY IF EXISTS "Public access to payments" ON storage.objects;
+CREATE POLICY "Public access to payments" ON storage.objects FOR SELECT USING (bucket_id = 'payments');
+CREATE POLICY "Users can upload their own payments" ON storage.objects FOR INSERT WITH CHECK (bucket_id = 'payments' AND auth.role() = 'authenticated');
+
+DROP POLICY IF EXISTS "Public access to qris" ON storage.objects;
+CREATE POLICY "Public access to qris" ON storage.objects FOR SELECT USING (bucket_id = 'qris');
+CREATE POLICY "Users can manage qris" ON storage.objects FOR ALL USING (bucket_id = 'qris' AND auth.role() = 'authenticated');
 
 -- ====================================================================
 -- SELESAI! Database siap digunakan.

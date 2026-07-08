@@ -1,9 +1,10 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useAuthStore } from '@/lib/store';
+import { createClient } from '@/lib/supabase/client';
 import { useRouter, usePathname } from 'next/navigation';
-import { ShieldAlert, Lock, Key, Users, BarChart3, Settings as SettingsIcon, LayoutDashboard, LogOut, Crown, Search, ChevronDown, CreditCard } from 'lucide-react';
+import { ShieldAlert, Lock, Key, Users, BarChart3, Settings as SettingsIcon, LayoutDashboard, LogOut, Crown, Search, ChevronDown, CreditCard, Menu, X } from 'lucide-react';
 import Link from 'next/link';
 import Image from 'next/image';
 
@@ -16,6 +17,44 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
   const [isUnlocked, setIsUnlocked] = useState(false);
   const [adminPassword, setAdminPassword] = useState('');
   const [passwordError, setPasswordError] = useState(false);
+  const [pendingTxCount, setPendingTxCount] = useState(0);
+  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+  
+  // Close mobile menu on route change
+  useEffect(() => {
+    setIsMobileMenuOpen(false);
+  }, [pathname]);
+  
+  const supabase = createClient();
+  
+  useEffect(() => {
+    if (!isAuthenticated) return;
+    
+    // Fetch initial count
+    const fetchCount = async () => {
+      const { count, error } = await supabase
+        .from('transactions')
+        .select('*', { count: 'exact', head: true })
+        .eq('status', 'pending');
+        
+      if (!error && count !== null) {
+        setPendingTxCount(count);
+      }
+    };
+    
+    fetchCount();
+    
+    // Subscribe to changes
+    const channel = supabase.channel('admin-transactions')
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'transactions' }, (payload) => {
+         fetchCount();
+      })
+      .subscribe();
+      
+    return () => {
+      channel.unsubscribe();
+    };
+  }, [isAuthenticated, supabase]);
   
   if (!isAuthenticated) {
     return (
@@ -105,9 +144,21 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
   ];
 
   return (
-    <div className="min-h-screen bg-[#0A0A0A] flex">
+    <div className="min-h-screen bg-[#0A0A0A] flex relative">
+      {/* Mobile Drawer Overlay */}
+      {isMobileMenuOpen && (
+        <div 
+          className="md:hidden fixed inset-0 bg-black/80 backdrop-blur-sm z-40"
+          onClick={() => setIsMobileMenuOpen(false)}
+        />
+      )}
+      
       {/* Admin Sidebar */}
-      <div className="w-64 bg-[#0A0A0A] border-r border-white/5 hidden md:flex flex-col h-screen sticky top-0">
+      <div className={`
+        fixed md:sticky top-0 left-0 z-50 h-screen w-64 bg-[#0A0A0A] border-r border-white/5 flex flex-col
+        transform transition-transform duration-300 ease-in-out md:transform-none
+        ${isMobileMenuOpen ? 'translate-x-0' : '-translate-x-full md:translate-x-0'}
+      `}>
         {/* User Profile Block */}
         <div className="p-4 border-b border-white/5">
           <div className="flex items-center gap-3 bg-[#111111] p-3 rounded-2xl border border-white/5">
@@ -157,6 +208,11 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
                 <div className="flex items-center gap-3">
                   <item.icon className={`w-4 h-4 ${isActive ? 'text-red-400' : 'group-hover:text-white/80'}`} />
                   <span className={`text-sm font-medium ${isActive ? 'text-white' : ''}`}>{item.name}</span>
+                  {item.name === 'Transaksi' && pendingTxCount > 0 && (
+                    <span className="bg-red-500 text-white text-[10px] font-bold px-2 py-0.5 rounded-full ml-1">
+                      {pendingTxCount}
+                    </span>
+                  )}
                 </div>
                 <ChevronDown className="w-4 h-4 text-white/20 group-hover:text-white/40" />
               </Link>
@@ -176,8 +232,13 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
       <div className="flex-1 min-w-0 bg-[#0A0A0A] flex flex-col h-screen overflow-y-auto">
         {/* Mobile Header */}
         <div className="md:hidden flex items-center justify-between p-4 border-b border-white/5 bg-[#111111] sticky top-0 z-20">
-          <h1 className="text-lg font-bold text-white">Admin Panel</h1>
-          <button onClick={() => router.push('/')} className="p-2 text-white/50 hover:text-white">
+          <div className="flex items-center gap-3">
+            <button onClick={() => setIsMobileMenuOpen(true)} className="p-2 -ml-2 text-white/50 hover:text-white">
+              <Menu className="w-5 h-5" />
+            </button>
+            <h1 className="text-lg font-bold text-white">Admin Panel</h1>
+          </div>
+          <button onClick={() => router.push('/')} className="p-2 -mr-2 text-white/50 hover:text-white">
             <LogOut className="w-5 h-5" />
           </button>
         </div>
