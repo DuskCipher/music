@@ -199,7 +199,7 @@ export default function ChatRoom({ params }: { params: Promise<{ id: string }> }
   const displayAvatar = isGroup ? roomDetails.avatar_url : otherUser?.avatar_url;
 
   return (
-    <div className="h-full bg-[#121212] flex flex-col min-w-0">
+    <div className="h-full bg-[#121212] flex flex-col min-w-0 overflow-hidden">
       {/* Header */}
       <div className="sticky top-0 z-20 bg-[#121212]/95 backdrop-blur-md px-4 py-3 flex items-center justify-between border-b border-white/5">
         <button onClick={() => router.back()} className="md:hidden text-white hover:opacity-70 transition p-1 -ml-1">
@@ -241,7 +241,7 @@ export default function ChatRoom({ params }: { params: Promise<{ id: string }> }
       </div>
 
       {/* Messages */}
-      <div className={`flex-1 overflow-y-auto px-4 py-6 transition-all duration-300 ${usePlayerStore((state) => state.currentTrack) ? 'pb-[220px]' : 'pb-[140px]'}`}>
+      <div className={`flex-1 overflow-y-auto px-4 py-6 transition-all duration-300 lg:pb-4 ${usePlayerStore((state) => state.currentTrack) ? 'pb-[220px]' : 'pb-[140px]'}`}>
         {/* Security Banner */}
         <div className="text-center mb-8 px-2">
           <p className="text-zinc-500 text-xs leading-relaxed">
@@ -478,7 +478,7 @@ export default function ChatRoom({ params }: { params: Promise<{ id: string }> }
       </div>
 
       {/* Input */}
-      <div className={`fixed bottom-0 left-0 right-0 z-20 bg-[#121212]/95 backdrop-blur-md px-4 pt-3 border-t border-white/5 md:pb-6 transition-all duration-300 ${usePlayerStore((state) => state.currentTrack) ? 'pb-[156px]' : 'pb-[76px]'}`}>
+      <div className={`fixed bottom-0 left-0 right-0 z-20 bg-[#121212]/95 backdrop-blur-md px-4 pt-3 border-t border-white/5 md:pb-6 transition-all duration-300 lg:static lg:pb-3 lg:pt-2 ${usePlayerStore((state) => state.currentTrack) ? 'pb-[156px]' : 'pb-[76px]'}`}>
         
         {replyingTo && (
           <div className="max-w-2xl mx-auto mb-2 flex items-center justify-between bg-[#2a2a2a] p-3 rounded-xl border-l-4 border-[#1DB954]">
