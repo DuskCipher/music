@@ -9,7 +9,6 @@ import { MixedScroll } from '@/components/MixedScroll';
 import { CommunityPlaylistCard } from '@/components/CommunityPlaylistCard';
 import { MarqueeText } from '@/components/MarqueeText';
 import { getHighResImage } from '@/lib/utils';
-import { motion, AnimatePresence } from 'motion/react';
 import Link from 'next/link';
 
 import { Sidebar } from '@/components/Sidebar';
@@ -314,11 +313,8 @@ export default function Home() {
             <div className="px-5">
               <div className="grid grid-cols-2 gap-2.5">
                 {recentlyPlayed.map((track, i) => (
-                  <motion.div
+                  <div
                     key={`recent-${track.videoId}-${i}`}
-                    initial={{ opacity: 0, y: 10 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    transition={{ duration: 0.3, delay: i * 0.05 }}
                     onClick={() => playTrack(track, recentlyPlayed, 'similar')}
                     className="flex items-center gap-3 bg-white/[0.06] hover:bg-white/[0.12] rounded-lg overflow-hidden cursor-pointer group active:scale-[0.97] transition-all h-14"
                   >
@@ -337,7 +333,7 @@ export default function Home() {
                     <div className="pr-3 opacity-0 group-hover:opacity-100 transition-opacity">
                       <Play className="w-4 h-4 text-white fill-current" />
                     </div>
-                  </motion.div>
+                  </div>
                 ))}
               </div>
             </div>
@@ -351,13 +347,8 @@ export default function Home() {
                 <h2 className="text-lg font-bold text-white">Spotlight</h2>
               </div>
               <div className="relative w-full aspect-[16/10] rounded-2xl overflow-hidden shadow-2xl">
-                <AnimatePresence mode="wait">
-                  <motion.div
+                  <div
                     key={heroTracks[heroIndex]?.videoId}
-                    initial={{ opacity: 0, scale: 1.05 }}
-                    animate={{ opacity: 1, scale: 1 }}
-                    exit={{ opacity: 0, scale: 0.95 }}
-                    transition={{ duration: 0.6 }}
                     className="absolute inset-0 cursor-pointer"
                     onClick={() => playTrack(heroTracks[heroIndex], heroTracks, 'similar')}
                   >
@@ -387,8 +378,7 @@ export default function Home() {
                         <Play className="w-6 h-6 text-white fill-current ml-0.5" />
                       </div>
                     </div>
-                  </motion.div>
-                </AnimatePresence>
+                  </div>
                 
                 {/* Dots indicator */}
                 {heroTracks.length > 1 && (
@@ -419,12 +409,8 @@ export default function Home() {
                 {Array.from({ length: Math.ceil(speedDialTracks.length / 9) }).map((_, i) => {
                   const chunk = speedDialTracks.slice(i * 9, i * 9 + 9);
                   return (
-                    <motion.div 
+                    <div 
                       key={`speeddial-chunk-${i}`}
-                      initial={{ opacity: 0, x: 20 }}
-                      whileInView={{ opacity: 1, x: 0 }}
-                      viewport={{ once: true, amount: 0.1 }}
-                      transition={{ duration: 0.3, ease: "easeOut" }}
                       className="w-[85vw] sm:w-[400px] shrink-0 snap-center grid grid-cols-3 gap-2"
                     >
                       {chunk.map((track, j) => (
@@ -445,7 +431,7 @@ export default function Home() {
                           </div>
                         </div>
                       ))}
-                    </motion.div>
+                    </div>
                   );
                 })}
               </div>
@@ -471,12 +457,8 @@ export default function Home() {
                 {Array.from({ length: Math.ceil(quickPicksTracks.length / 4) }).map((_, i) => {
                   const chunk = quickPicksTracks.slice(i * 4, i * 4 + 4);
                   return (
-                    <motion.div 
+                    <div 
                       key={`quickpicks-chunk-${i}`}
-                      initial={{ opacity: 0, x: 20 }}
-                      whileInView={{ opacity: 1, x: 0 }}
-                      viewport={{ once: true, amount: 0.1 }}
-                      transition={{ duration: 0.3, ease: "easeOut" }}
                       className="w-[85vw] sm:w-[400px] shrink-0 snap-center flex flex-col gap-1"
                     >
                       {chunk.map((track, j) => {
@@ -509,7 +491,7 @@ export default function Home() {
                           </div>
                         );
                       })}
-                    </motion.div>
+                    </div>
                   );
                 })}
               </div>
@@ -547,11 +529,7 @@ export default function Home() {
                   const artistName = artist.name || 'Artist';
                   return (
                     <Link href={`/artist/${artist.artistId}`} key={`artist-${artist.artistId}-${i}`}>
-                      <motion.div
-                        initial={{ opacity: 0, x: 20 }}
-                        whileInView={{ opacity: 1, x: 0 }}
-                        viewport={{ once: true, amount: 0.1 }}
-                        transition={{ duration: 0.3, ease: "easeOut" }}
+                      <div
                         className="flex flex-col items-center gap-2.5 cursor-pointer group shrink-0 snap-center hover:scale-105 active:scale-95 transition-transform duration-200"
                       >
                         <div className="relative w-[88px] h-[88px] rounded-full overflow-hidden shadow-lg ring-2 ring-white/[0.06] group-hover:ring-white/20 transition-all">
@@ -564,7 +542,7 @@ export default function Home() {
                           <p className="text-[13px] font-semibold text-white truncate">{artistName}</p>
                           <p className="text-[11px] text-white/40">Artis</p>
                         </div>
-                      </motion.div>
+                      </div>
                     </Link>
                   );
                 })}

@@ -18,17 +18,37 @@ export default function AdminTransactionsPage() {
   const fetchTransactions = async () => {
     setLoading(true);
     try {
-      const { data, error } = await supabase
+      const { data: txData, error } = await supabase
         .from('transactions')
         .select(`
           *,
-          user:profiles(*),
           package:premium_packages(*)
         `)
         .order('created_at', { ascending: false });
 
       if (error) throw error;
-      setTransactions(data || []);
+      
+      if (!txData || txData.length === 0) {
+        setTransactions([]);
+        setLoading(false);
+        return;
+      }
+
+      // Fetch profiles manually because the foreign key points to auth.users, not profiles
+      const userIds = txData.map((tx: any) => tx.user_id).filter(Boolean);
+      const { data: profiles } = await supabase
+        .from('profiles')
+        .select('*')
+        .in('id', userIds);
+
+      const profileMap = new Map((profiles || []).map(p => [p.id, p]));
+
+      const transactionsWithUsers = txData.map((tx: any) => ({
+        ...tx,
+        user: profileMap.get(tx.user_id) || null
+      }));
+
+      setTransactions(transactionsWithUsers);
     } catch (err) {
       console.error('Error fetching transactions:', err);
     } finally {

@@ -1,7 +1,7 @@
 import { Play, ArrowRight } from 'lucide-react';
 import Image from 'next/image';
 import { getHighResImage } from '@/lib/utils';
-import { motion } from 'motion/react';
+
 import { MarqueeText } from './MarqueeText';
 import { usePlayerStore } from '@/lib/store';
 import { useRouter } from 'next/navigation';
@@ -103,12 +103,8 @@ export function MixedScroll({ title, items }: MixedScrollProps) {
           };
 
           return (
-            <motion.div
+            <div
               key={`${item.videoId || item.playlistId || item.albumId || item.artistId}-${i}`}
-              initial={{ opacity: 0, x: 20 }}
-              whileInView={{ opacity: 1, x: 0 }}
-              viewport={{ once: true, amount: 0.1 }}
-              transition={{ duration: 0.3, ease: "easeOut" }}
               className="flex-none w-36 cursor-pointer group snap-center hover:scale-[1.02] active:scale-[0.98] transition-transform duration-200"
               onClick={handleClick}
             >
@@ -132,7 +128,7 @@ export function MixedScroll({ title, items }: MixedScrollProps) {
                 <MarqueeText text={titleText} className="text-sm font-medium text-white leading-tight" />
                 <MarqueeText text={subtitleText} className="text-xs text-gray-400 mt-1" />
               </div>
-            </motion.div>
+            </div>
           );
         })}
       </div>

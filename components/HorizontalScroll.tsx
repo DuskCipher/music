@@ -4,7 +4,7 @@ import { Track, usePlayerStore } from '@/lib/store';
 import Image from 'next/image';
 import { getHighResImage } from '@/lib/utils';
 import { Play, ArrowRight } from 'lucide-react';
-import { motion } from 'motion/react';
+
 import { MarqueeText } from './MarqueeText';
 import { useRouter } from 'next/navigation';
 
@@ -69,12 +69,8 @@ export function HorizontalScroll({ title, tracks }: { title: string; tracks: Tra
           const artistName = Array.isArray(track.artist) ? track.artist.map(a => a.name).join(', ') : track.artist?.name || 'Unknown Artist';
 
           return (
-            <motion.div
+            <div
               key={`${track.videoId}-${i}`}
-              initial={{ opacity: 0, x: 20 }}
-              whileInView={{ opacity: 1, x: 0 }}
-              viewport={{ once: true, amount: 0.1 }}
-              transition={{ duration: 0.3, ease: "easeOut" }}
               className="flex-none w-36 cursor-pointer group snap-center hover:scale-[1.02] active:scale-[0.98] transition-transform duration-200"
               onClick={() => playTrack(track, tracks)}
             >
@@ -90,7 +86,7 @@ export function HorizontalScroll({ title, tracks }: { title: string; tracks: Tra
               </div>
               <MarqueeText text={track.name} className="text-sm font-medium text-white leading-tight" />
               <MarqueeText text={artistName} className="text-xs text-gray-400 mt-1" />
-            </motion.div>
+            </div>
           );
         })}
       </div>
